@@ -1,0 +1,15 @@
+**/node_modules
+**/.next
+**/.turbo
+**/.expo
+**/dist
+**/.git
+**/.github
+**/coverage
+**/.env
+**/.env.local
+**/*.log
+**/.DS_Store
+apps/mobile/ios
+apps/mobile/android
+deploy/letsencrypt

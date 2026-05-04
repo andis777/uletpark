@@ -1,0 +1,11 @@
+# Crontab для контейнера cron (формат busybox crond)
+# Поля: minute hour day month weekday command
+
+# Каждый час: пересчёт materialized views для аналитики
+0 * * * * /cron-jobs.sh refresh-analytics >> /var/log/cron.log 2>&1
+
+# Каждые 15 минут: incremental sync с amoCRM (только обновлённые за сутки)
+*/15 * * * * /cron-jobs.sh sync-amocrm >> /var/log/cron.log 2>&1
+
+# Раз в сутки в 4:00 ночи: Postgres backup в файл
+0 4 * * * /cron-jobs.sh pg-backup >> /var/log/cron.log 2>&1

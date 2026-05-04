@@ -1,0 +1,29 @@
+{
+  "name": "@uletnaya/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./schema": "./schema.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "studio": "drizzle-kit studio",
+    "seed:loyalty": "tsx scripts/seed-loyalty.ts",
+    "seed:admin": "tsx scripts/seed-admin.ts",
+    "migrate:analytics": "tsx scripts/migrate-analytics-views.ts",
+    "backfill:amocrm": "tsx scripts/backfill-amocrm.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.36.4",
+    "postgres": "^3.4.5",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.28.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

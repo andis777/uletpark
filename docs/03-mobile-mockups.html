@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Улётная парковка — Mobile Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Inter',sans-serif;
+  background:#f6f4f0;
+  color:#0a0a0a;
+  padding:3rem 1rem;
+  min-height:100vh;
+}
+.head{max-width:1400px;margin:0 auto 3rem;text-align:center}
+.eyebrow{font-size:0.7rem;letter-spacing:0.25em;text-transform:uppercase;color:#c45d3e;font-weight:500;margin-bottom:1rem}
+.head h1{font-family:'Manrope',sans-serif;font-size:clamp(2.4rem,4vw,3.4rem);font-weight:300;letter-spacing:-0.02em;line-height:1.1;margin-bottom:0.8rem}
+.head p{color:#8a8580;max-width:640px;margin:0 auto;line-height:1.6}
+
+.frames{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:2.5rem;
+  max-width:1400px;
+  margin:0 auto;
+  justify-items:center;
+}
+.frame-wrap{display:flex;flex-direction:column;align-items:center;gap:1rem}
+.frame-label{font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:#8a8580}
+.frame-label strong{color:#0a0a0a;font-weight:600;display:block;font-size:0.95rem;letter-spacing:0;text-transform:none;margin-top:2px}
+
+/* iPhone-like frame */
+.phone{
+  width:300px;
+  height:640px;
+  background:#1F2430;
+  border-radius:36px;
+  padding:14px 10px;
+  box-shadow:0 30px 80px rgba(10,10,10,0.18), 0 0 0 8px #0e1018, 0 0 0 9px #2a2d35;
+  position:relative;
+  overflow:hidden;
+}
+.phone::before{
+  content:'';
+  position:absolute;
+  top:14px;left:50%;transform:translateX(-50%);
+  width:100px;height:24px;
+  background:#0e1018;
+  border-radius:12px;
+  z-index:10;
+}
+
+.screen{
+  width:100%;height:100%;
+  background:#1F2430;
+  border-radius:24px;
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+
+/* Status bar */
+.status{
+  height:38px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  padding:0 18px 8px;
+  font-size:11px;
+  color:#fff;
+  font-weight:600;
+}
+
+/* Body */
+.body{flex:1;overflow-y:auto;padding:0 18px}
+.body::-webkit-scrollbar{display:none}
+
+/* Tab bar */
+.tabs{
+  height:60px;
+  background:#15171f;
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  border-top:1px solid #2a2d35;
+}
+.tab{font-size:9px;color:#5a5d65;text-align:center}
+.tab.active{color:#3FB8AF}
+.tab .ico{font-size:18px;display:block;margin-bottom:2px}
+
+/* Brand bits */
+.brand-eyebrow{color:#3FB8AF;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;font-weight:500}
+.h1m{color:#fff;font-family:'Manrope',sans-serif;font-size:26px;font-weight:300;line-height:1.15;margin-bottom:8px}
+.subm{color:#8a8580;font-size:11px;line-height:1.5;margin-bottom:18px}
+
+/* Buttons */
+.btn-primary{
+  background:#FF6B4A;
+  color:#fff;
+  padding:13px;
+  border-radius:10px;
+  text-align:center;
+  font-weight:600;
+  font-size:13px;
+  margin-top:auto;
+  margin-bottom:14px;
+}
+
+/* Inputs */
+.input{
+  background:#2D3039;
+  color:#fff;
+  padding:11px 12px;
+  border-radius:8px;
+  font-size:13px;
+  margin-bottom:10px;
+  border:1px solid transparent;
+}
+.input.focus{border-color:#3FB8AF}
+
+/* Cards */
+.card{
+  background:#2D3039;
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:10px;
+}
+.airport{color:#3FB8AF;font-weight:700;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.dates{color:#fff;font-size:13px;margin:6px 0 2px}
+.car{color:#8a8580;font-size:11px;margin-bottom:8px}
+.price{color:#fff;font-size:18px;font-weight:300}
+
+.pill{font-size:8px;padding:3px 8px;border-radius:100px;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+.pill.upcoming{color:#FF6B4A;background:rgba(255,107,74,0.15)}
+.pill.done{color:#3FB8AF;background:rgba(63,184,175,0.15)}
+
+/* Calc */
+.calc-airports{display:flex;gap:6px;margin-bottom:12px}
+.calc-airport{flex:1;background:#2D3039;padding:10px 0;text-align:center;border-radius:8px;color:#8a8580;font-size:12px;font-weight:600}
+.calc-airport.active{background:#3FB8AF;color:#1F2430}
+.calc-total{
+  background:#15171f;
+  padding:14px;
+  border-radius:10px;
+  display:flex;justify-content:space-between;align-items:center;
+  margin:14px 0;
+}
+.calc-total-label{color:#8a8580;font-size:11px}
+.calc-total-val{color:#fff;font-size:24px;font-weight:300}
+
+/* Loyalty card */
+.loy-card{
+  background:linear-gradient(135deg,#3FB8AF,#1A9A8E);
+  border-radius:16px;
+  padding:24px;
+  text-align:center;
+  margin:18px 0;
+  color:#1F2430;
+}
+.loy-tier{font-size:9px;letter-spacing:4px;font-weight:700;margin-bottom:14px}
+.loy-points{font-size:48px;font-weight:200;line-height:1}
+.loy-label{font-size:10px;opacity:0.7;margin-top:4px}
+.loy-prog{margin-top:18px}
+.loy-prog-bg{height:4px;background:rgba(0,0,0,0.15);border-radius:2px;overflow:hidden}
+.loy-prog-fill{height:4px;background:#FF6B4A;width:62%}
+.loy-prog-txt{font-size:9px;margin-top:6px;opacity:0.7}
+
+/* Refer */
+.refer-card{
+  background:#2D3039;
+  border-radius:12px;
+  padding:18px;
+  text-align:center;
+}
+.refer-label{color:#8a8580;font-size:9px;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase}
+.refer-code{color:#3FB8AF;font-size:22px;font-weight:300;letter-spacing:3px;font-family:'Manrope'}
+.refer-hint{color:#8a8580;font-size:9px;margin-top:8px;line-height:1.5}
+
+/* OTP */
+.otp-group{display:flex;gap:6px;margin-bottom:18px}
+.otp-cell{
+  flex:1;height:46px;
+  background:#2D3039;
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:18px;font-weight:600;
+  border:1px solid transparent;
+}
+.otp-cell.filled{border-color:#3FB8AF}
+
+/* Booking detail */
+.detail-hero{
+  background:linear-gradient(135deg,#2D3039,#1F2430);
+  padding:18px;
+  border-radius:14px;
+  margin-bottom:14px;
+}
+.detail-airport{color:#3FB8AF;font-size:11px;letter-spacing:3px;font-weight:600;text-transform:uppercase}
+.detail-dates{color:#fff;font-size:18px;font-weight:300;margin:6px 0}
+.detail-price{color:#fff;font-size:36px;font-weight:200;margin-top:4px}
+.detail-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #2D3039;font-size:11px}
+.detail-row .k{color:#8a8580}
+.detail-row .v{color:#fff}
+
+.actions{display:flex;gap:8px;margin-top:14px}
+.action{flex:1;background:#2D3039;color:#fff;padding:12px;border-radius:8px;text-align:center;font-size:11px;font-weight:600}
+.action.warn{color:#FF6B4A;background:rgba(255,107,74,0.1)}
+
+/* Notes */
+.note{
+  font-size:0.7rem;
+  color:#8a8580;
+  text-align:center;
+  margin-top:0.5rem;
+  max-width:280px;
+  line-height:1.5;
+}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="eyebrow">Mobile Mockups</div>
+  <h1>Улётная парковка<br><span style="color:#c45d3e;font-style:italic">в кармане</span></h1>
+  <p>6 ключевых экранов будущего приложения. Тёмная схема (графит #1F2430 + бренд #3FB8AF + warm CTA #FF6B4A). Шрифт: Manrope для заголовков, Inter для текста.</p>
+</div>
+
+<div class="frames">
+
+  <!-- 1. Login phone -->
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="body" style="padding-top:60px">
+        <div class="brand-eyebrow">Улётная парковка</div>
+        <div class="h1m">Войти<br>по номеру телефона</div>
+        <div class="subm">Отправим SMS с кодом подтверждения</div>
+        <div class="input focus" style="margin-top:30px">+7 999 ___ __ __</div>
+        <div class="btn-primary">Получить код</div>
+        <div style="font-size:9px;color:#5a5d65;text-align:center;margin-bottom:16px">
+          Нажимая, вы соглашаетесь<br>с офертой и политикой конфиденциальности
+        </div>
+      </div>
+    </div></div>
+    <div class="frame-label">Экран 1<br><strong>Вход — телефон</strong></div>
+  </div>
+
+  <!-- 2. OTP -->
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:42</span><span>● ● ●</span></div>
+      <div class="body" style="padding-top:60px">
+        <div class="brand-eyebrow">SMS подтверждение</div>
+        <div class="h1m">Введите код<br>из SMS</div>
+        <div class="subm">Отправили на +7 909 ●●● 88 81. Срок действия 5 минут.</div>
+        <div class="otp-group" style="margin-top:30px">
+          <div class="otp-cell filled">3</div>
+          <div class="otp-cell filled">7</div>
+          <div class="otp-cell filled">2</div>
+          <div class="otp-cell filled">9</div>
+          <div class="otp-cell">_</div>
+          <div class="otp-cell">_</div>
+        </div>
+        <div style="text-align:center;font-size:11px;color:#3FB8AF;margin-bottom:14px">Запросить код снова через 0:42</div>
+        <div class="btn-primary" style="opacity:0.5">Войти</div>
+      </div>
+    </div></div>
+    <div class="frame-label">Экран 2<br><strong>Вход — код</strong></div>
+  </div>
+
+  <!-- 3. Home / Calculator -->
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:45</span><span>● ● ●</span></div>
+      <div class="body" style="padding-top:24px">
+        <div class="brand-eyebrow">Улётная парковка</div>
+        <div class="h1m">Парковка<br>у трёх аэропортов</div>
+        <div class="subm">От 150 ₽/сут · трансфер · охрана 24/7</div>
+
+        <div class="card" style="margin-top:8px">
+          <div style="color:#8a8580;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Калькулятор</div>
+          <div class="calc-airports">
+            <div class="calc-airport active">SVO</div>
+            <div class="calc-airport">DME</div>
+            <div class="calc-airport">VKO</div>
+          </div>
+          <div style="font-size:10px;color:#8a8580;margin-bottom:4px">Заезд</div>
+          <div class="input">10 мая, 10:00</div>
+          <div style="font-size:10px;color:#8a8580;margin-bottom:4px">Выезд</div>
+          <div class="input">17 мая, 10:00</div>
+          <div class="calc-total">
+            <span class="calc-total-label">Итого 7 дней</span>
+            <span class="calc-total-val">1 050 ₽</span>
+          </div>
+        </div>
+        <div class="btn-primary">Забронировать</div>
+      </div>
+      <div class="tabs">
+        <div class="tab active"><span class="ico">⌂</span>Главная</div>
+        <div class="tab"><span class="ico">▤</span>Брони</div>
+        <div class="tab"><span class="ico">★</span>Карта</div>
+        <div class="tab"><span class="ico">○</span>Профиль</div>
+      </div>
+    </div></div>
+    <div class="frame-label">Экран 3<br><strong>Главная + калькулятор</strong></div>
+  </div>
+
+  <!-- 4. Bookings list -->
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:50</span><span>● ● ●</span></div>
+      <div class="body" style="padding-top:24px">
+        <div class="brand-eyebrow">Улётная парковка</div>
+        <div class="h1m">Мои брони</div>
+
+        <div class="card">
+          <div class="row">
+            <span class="airport">SVO</span>
+            <span class="pill upcoming">Скоро</span>
+          </div>
+          <div class="dates">10 мая → 17 мая</div>
+          <div class="car">А 123 БВ 77 · Toyota Camry</div>
+          <div class="row" style="margin-top:8px">
+            <span class="price">1 050 ₽</span>
+            <span style="color:#3FB8AF;font-size:10px">+52 балла</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <span class="airport">DME</span>
+            <span class="pill done">Завершена</span>
+          </div>
+          <div class="dates">2 апр → 9 апр</div>
+          <div class="car">А 123 БВ 77 · Toyota Camry</div>
+          <div class="row" style="margin-top:8px">
+            <span class="price">1 050 ₽</span>
+            <span style="color:#3FB8AF;font-size:10px">+52 балла</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <span class="airport">SVO</span>
+            <span class="pill done">Завершена</span>
+          </div>
+          <div class="dates">15 фев → 22 фев</div>
+          <div class="car">А 123 БВ 77 · Toyota Camry</div>
+          <div class="row" style="margin-top:8px">
+            <span class="price">945 ₽</span>
+            <span style="color:#3FB8AF;font-size:10px">+47 баллов</span>
+          </div>
+        </div>
+      </div>
+      <div class="tabs">
+        <div class="tab"><span class="ico">⌂</span>Главная</div>
+        <div class="tab active"><span class="ico">▤</span>Брони</div>
+        <div class="tab"><span class="ico">★</span>Карта</div>
+        <div class="tab"><span class="ico">○</span>Профиль</div>
+      </div>
+    </div></div>
+    <div class="frame-label">Экран 4<br><strong>Список броней</strong></div>
+  </div>
+
+  <!-- 5. Booking detail -->
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:52</span><span>● ● ●</span></div>
+      <div class="body" style="padding-top:24px">
+        <div style="color:#8a8580;font-size:11px;margin-bottom:14px">← Все брони</div>
+
+        <div class="detail-hero">
+          <div class="detail-airport">Шереметьево</div>
+          <div class="detail-dates">10 мая → 17 мая</div>
+          <div class="detail-price">1 050 ₽</div>
+          <div class="pill upcoming" style="margin-top:8px;display:inline-block">Подтверждена · трансфер 24/7</div>
+        </div>
+
+        <div class="detail-row"><span class="k">Машина</span><span class="v">А 123 БВ 77</span></div>
+        <div class="detail-row"><span class="k">Модель</span><span class="v">Toyota Camry</span></div>
+        <div class="detail-row"><span class="k">Дней</span><span class="v">7</span></div>
+        <div class="detail-row"><span class="k">Цена за сутки</span><span class="v">150 ₽</span></div>
+        <div class="detail-row"><span class="k">Будет начислено</span><span class="v" style="color:#3FB8AF">+52 балла</span></div>
+        <div class="detail-row"><span class="k">Договор хранения</span><span class="v">№ 2026-447</span></div>
+
+        <div class="actions">
+          <div class="action">Продлить</div>
+          <div class="action warn">Отменить</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="frame-label">Экран 5<br><strong>Детали брони</strong></div>
+  </div>
+
+  <!-- 6. Loyalty -->
+  <div class="frame-wrap">
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:55</span><span>● ● ●</span></div>
+      <div class="body" style="padding-top:24px">
+        <div class="brand-eyebrow">Улётная парковка</div>
+        <div class="h1m">Карта<br>лояльности</div>
+
+        <div class="loy-card">
+          <div class="loy-tier">SILVER</div>
+          <div class="loy-points">1 240</div>
+          <div class="loy-label">баллов · 1 балл = 1 ₽</div>
+          <div class="loy-prog">
+            <div class="loy-prog-bg"><div class="loy-prog-fill"></div></div>
+            <div class="loy-prog-txt">До тира GOLD: ещё 9 760 ₽ покупок</div>
+          </div>
+        </div>
+
+        <div class="refer-card">
+          <div class="refer-label">Пригласи друга</div>
+          <div class="refer-code">UP4F2X8K</div>
+          <div class="refer-hint">Друг получит 500 ₽ бонус<br>Ты — 500 ₽ при первой брони друга</div>
+        </div>
+      </div>
+      <div class="tabs">
+        <div class="tab"><span class="ico">⌂</span>Главная</div>
+        <div class="tab"><span class="ico">▤</span>Брони</div>
+        <div class="tab active"><span class="ico">★</span>Карта</div>
+        <div class="tab"><span class="ico">○</span>Профиль</div>
+      </div>
+    </div></div>
+    <div class="frame-label">Экран 6<br><strong>Карта лояльности</strong></div>
+  </div>
+
+</div>
+
+<div style="max-width:900px;margin:4rem auto 0;padding:2rem;background:#fffefa;border-radius:16px;border:1px solid #e3e0da">
+  <h2 style="font-family:'Manrope';font-weight:400;font-size:1.4rem;margin-bottom:1rem">Дизайн-система</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;font-size:0.9rem;line-height:1.7">
+    <div>
+      <strong style="display:block;margin-bottom:0.4rem">Цвета</strong>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:18px;height:18px;border-radius:4px;background:#1F2430;border:1px solid #d6d2cc"></span><code>#1F2430</code> графит</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:18px;height:18px;border-radius:4px;background:#3FB8AF"></span><code>#3FB8AF</code> бренд</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:18px;height:18px;border-radius:4px;background:#FF6B4A"></span><code>#FF6B4A</code> CTA</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:18px;height:18px;border-radius:4px;background:#2D3039"></span><code>#2D3039</code> поверхность</div>
+    </div>
+    <div>
+      <strong style="display:block;margin-bottom:0.4rem">Шрифты</strong>
+      <div style="font-family:'Manrope';font-weight:300;font-size:18px;margin-bottom:4px">Manrope · 300/400/600</div>
+      <div style="font-family:'Inter';font-size:14px">Inter · 400/500/600</div>
+    </div>
+    <div>
+      <strong style="display:block;margin-bottom:0.4rem">Spacing</strong>
+      <div>4 / 8 / 12 / 16 / 24 / 32 px</div>
+      <div style="margin-top:4px;color:#8a8580;font-size:0.8rem">Карточки: 16px padding, 12px radius</div>
+    </div>
+    <div>
+      <strong style="display:block;margin-bottom:0.4rem">Кнопки</strong>
+      <div style="background:#FF6B4A;color:white;padding:10px 16px;border-radius:10px;display:inline-block;font-weight:600;font-size:0.85rem">Primary CTA</div>
+      <div style="background:#2D3039;color:white;padding:10px 16px;border-radius:10px;display:inline-block;font-weight:600;font-size:0.85rem;margin-top:6px">Secondary</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
