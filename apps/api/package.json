@@ -18,8 +18,7 @@
     "postgres": "^3.4.5",
     "jose": "^5.9.6",
     "bcryptjs": "^2.4.3",
-    "zod": "^3.23.8",
-    "@sentry/nextjs": "^8.36.0"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

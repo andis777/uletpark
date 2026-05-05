@@ -9,7 +9,7 @@ const SECRET = new TextEncoder().encode(
 
 const PUBLIC_ADMIN_PATHS = ["/admin/login", "/api/admin/auth/login", "/api/admin/auth/logout"];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const needsAdmin =

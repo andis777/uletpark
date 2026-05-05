@@ -74,7 +74,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <StatusEditor id={b.id} current={b.status} />
           </div>
 
-          {b.rawAmocrm && (
+          {Boolean(b.rawAmocrm) && (
             <details style={{ ...card, marginTop: 16 }}>
               <summary style={{ ...cardTitle, cursor: "pointer", margin: 0 }}>Raw amoCRM payload</summary>
               <pre style={{ fontSize: 10, overflow: "auto", marginTop: 12, color: "#3a3835" }}>

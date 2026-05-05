@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function AdminLogin() {
+function LoginInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get("next") || "/admin";
@@ -33,30 +33,17 @@ export default function AdminLogin() {
         Admin Panel
       </div>
       <h1 style={{ fontSize: "2rem", fontWeight: 300, marginBottom: 32 }}>Улётная — вход</h1>
-
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <input
-          type="email"
-          placeholder="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          placeholder="пароль"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          style={inputStyle}
-        />
+        <input type="email" placeholder="email" value={email} onChange={e => setEmail(e.target.value)} required
+               style={{ padding: "12px 14px", fontSize: 15, border: "1px solid #d6d2cc", borderRadius: 8, background: "#fffefa" }} />
+        <input type="password" placeholder="пароль" value={password} onChange={e => setPassword(e.target.value)} required
+               style={{ padding: "12px 14px", fontSize: 15, border: "1px solid #d6d2cc", borderRadius: 8, background: "#fffefa" }} />
         {err && <div style={{ color: "#a54a3a", fontSize: 13 }}>{err}</div>}
-        <button type="submit" disabled={busy} style={btnStyle}>
+        <button type="submit" disabled={busy}
+                style={{ padding: "12px 14px", background: "#c45d3e", color: "white", border: "none", borderRadius: 8, fontSize: 15, cursor: "pointer", fontWeight: 500 }}>
           {busy ? "..." : "Войти"}
         </button>
       </form>
-
       <p style={{ marginTop: 32, color: "#8a8580", fontSize: 12 }}>
         Нет доступа? Запусти <code>pnpm db:seed:admin</code> чтобы создать первого админа.
       </p>
@@ -64,21 +51,6 @@ export default function AdminLogin() {
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  padding: "12px 14px",
-  fontSize: 15,
-  border: "1px solid #d6d2cc",
-  borderRadius: 8,
-  background: "#fffefa",
-  fontFamily: "inherit",
-};
-const btnStyle: React.CSSProperties = {
-  padding: "12px 14px",
-  background: "#c45d3e",
-  color: "white",
-  border: "none",
-  borderRadius: 8,
-  fontSize: 15,
-  cursor: "pointer",
-  fontWeight: 500,
-};
+export default function AdminLogin() {
+  return <Suspense fallback={<div style={{ padding: 40 }}>Загрузка…</div>}><LoginInner /></Suspense>;
+}

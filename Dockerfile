@@ -19,7 +19,7 @@ COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
 
 # Прод-зависимости (включая dev для сборки)
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # ---------- 2. builder: компиляция Next.js ---------------------------------
 FROM node:22-alpine AS builder
@@ -56,8 +56,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/api/.next/static ./apps/api/
 COPY --from=builder --chown=nextjs:nodejs /app/apps/api/public ./apps/api/public
 
 # Drizzle migrations (для запуска при старте контейнера)
-COPY --from=builder --chown=nextjs:nodejs /app/packages/db/drizzle ./packages/db/drizzle
-COPY --from=builder --chown=nextjs:nodejs /app/packages/db/schema.ts ./packages/db/schema.ts
 
 USER nextjs
 EXPOSE 3000

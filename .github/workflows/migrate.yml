@@ -1,0 +1,43 @@
+# =========================================================================
+# Manual migration trigger: запускает drizzle-kit push на сервере.
+# Используется когда менялась схема (packages/db/schema.ts).
+# =========================================================================
+name: DB Migrate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "packages/db/schema.ts"
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run drizzle-kit push via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            set -e
+            cd /opt/uletnaya
+            git fetch --all && git reset --hard origin/main
+
+            # Запускаем drizzle-kit push в одноразовом контейнере с кодом репо
+            docker run --rm \
+              --network uletnaya_uletnaya \
+              -v /opt/uletnaya:/app -w /app \
+              --env-file /opt/uletnaya/.env.production \
+              -e DATABASE_URL="postgres://uletnaya:$(grep ^POSTGRES_PASSWORD .env.production | cut -d= -f2-)@postgres:5432/uletnaya" \
+              node:22-alpine sh -c '
+                corepack enable &&
+                corepack prepare pnpm@9.12.0 --activate &&
+                pnpm install --no-frozen-lockfile --silent &&
+                cd packages/db &&
+                pnpm exec drizzle-kit push --force
+              '
+            echo "✓ Migration done"
