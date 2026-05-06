@@ -109,7 +109,7 @@ export async function createLead(payload: {
  * Используется в verify-otp для авто-привязки существующих заказов amoCRM к новому пользователю.
  */
 export async function listLeadsByPhone(phone: string): Promise<AmoCrmLead[]> {
-  if (isStub) return [stubLead(200), stubLead(201)];
+  if (isStub) return generateStubLeadsForPhone(phone);
   const search = await amoFetch(`/contacts?query=${encodeURIComponent(phone)}&with=leads`) as {
     _embedded?: { contacts?: (AmoCrmContact & { _embedded?: { leads?: { id: number }[] } })[] }
   };
@@ -242,6 +242,72 @@ function stubLead(id: number): AmoCrmLead {
       { field_id: 3, field_code: "DATE_TO", values: [{ value: (now + 86400 * 7) * 1000 }] },
     ],
   };
+}
+
+/* ---------- Детерминированные stub-данные на основе phone ---------- */
+
+// Простой не-крипто-хеш строки → положительное число
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) - h) + s.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+/** Генератор уникальных stub-броней для конкретного телефона */
+function generateStubLeadsForPhone(phone: string): AmoCrmLead[] {
+  const seed = hashString(phone);
+  const count = 1 + (seed % 4);   // 1-4 брони на номер
+
+  const airports = ["SVO", "DME", "VKO"] as const;
+  const statusMap = [142, 142, 142, 1, 1, 0, 143] as const;   // mostly completed, реже cancelled
+  const carPrefixes = ["А", "В", "Е", "К", "М", "Н", "О", "Р", "С", "Т", "У", "Х"];
+  const carRegions = [77, 99, 177, 197, 199, 777];
+
+  const leads: AmoCrmLead[] = [];
+  for (let i = 0; i < count; i++) {
+    const subseed = seed + i * 31;
+    const airport = airports[subseed % airports.length];
+    const days = 1 + (subseed % 14);                          // 1-14 дней
+    const dayOffset = -45 + (subseed % 90);                   // -45..+45 от сейчас
+    const dateFrom = new Date();
+    dateFrom.setHours(10, 0, 0, 0);
+    dateFrom.setDate(dateFrom.getDate() + dayOffset);
+    const dateTo = new Date(dateFrom);
+    dateTo.setDate(dateTo.getDate() + days);
+    const price = days * 150;
+    const status_id = statusMap[subseed % statusMap.length];
+    const carNumber =
+      carPrefixes[subseed % carPrefixes.length] +
+      String(100 + (subseed % 900)) +
+      carPrefixes[(subseed >> 4) % carPrefixes.length] +
+      carPrefixes[(subseed >> 8) % carPrefixes.length] +
+      carRegions[(subseed >> 12) % carRegions.length];
+
+    // Уникальный lead_id из seed — не пересекается с другими телефонами
+    const leadId = seed * 1000 + i;
+    const contactId = (seed % 100000) + 50000;
+
+    leads.push({
+      id: leadId,
+      status_id,
+      pipeline_id: 1,
+      responsible_user_id: 1,
+      price,
+      contacts: [{ id: contactId }],
+      created_at: Math.floor(dateFrom.getTime() / 1000) - 86400 * 3,
+      updated_at: Math.floor(Date.now() / 1000),
+      custom_fields_values: [
+        { field_id: 1, field_code: "AIRPORT",    values: [{ value: airport }] },
+        { field_id: 2, field_code: "DATE_FROM",  values: [{ value: dateFrom.getTime() }] },
+        { field_id: 3, field_code: "DATE_TO",    values: [{ value: dateTo.getTime() }] },
+        { field_id: 4, field_code: "CAR_NUMBER", values: [{ value: carNumber }] },
+      ],
+    });
+  }
+  return leads;
 }
 
 function stubContact(id: number): AmoCrmContact {
