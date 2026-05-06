@@ -1,0 +1,172 @@
+# =========================================================================
+# Manual server hardening:
+#  - install + enable fail2ban
+#  - disable password auth (key-only SSH)
+#  - permit root login by key only
+#  - basic UFW firewall (22, 80, 443 only)
+# Run: gh workflow run "Harden Server" -R andis777/uletpark
+# =========================================================================
+name: Harden Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      change_ssh_port:
+        description: "Change SSH port to (leave 22 to keep current)"
+        required: false
+        default: "22"
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pre-check — verify key works
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            set -e
+            echo "✓ Key auth works"
+            cat ~/.ssh/authorized_keys | wc -l
+            echo "Authorized keys count above"
+
+      - name: Install fail2ban + ufw
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            set -e
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq fail2ban ufw
+            systemctl enable --now fail2ban
+            echo "✓ fail2ban installed"
+
+      - name: Configure fail2ban for SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            set -e
+            cat > /etc/fail2ban/jail.local <<'EOF'
+            [DEFAULT]
+            bantime = 1h
+            findtime = 10m
+            maxretry = 5
+            ignoreip = 127.0.0.1/8 ::1
+
+            [sshd]
+            enabled = true
+            port = ssh
+            backend = systemd
+            EOF
+            systemctl restart fail2ban
+            sleep 2
+            fail2ban-client status sshd || true
+            echo "✓ fail2ban sshd jail active"
+
+      - name: Harden sshd (key-only, no password, key-root)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            set -e
+            NEW_PORT="${{ inputs.change_ssh_port }}"
+            CFG=/etc/ssh/sshd_config
+
+            # Резервная копия
+            cp -n "$CFG" "${CFG}.bak.$(date +%s)"
+
+            # Удаляем все наши предыдущие inserts
+            sed -i '/^# === uletnaya hardening ===/,/^# === uletnaya hardening end ===/d' "$CFG"
+
+            # Чистим возможные конфликтующие настройки
+            sed -i -E 's/^[# ]*PasswordAuthentication .*/#&/' "$CFG"
+            sed -i -E 's/^[# ]*PermitRootLogin .*/#&/' "$CFG"
+            sed -i -E 's/^[# ]*PubkeyAuthentication .*/#&/' "$CFG"
+            sed -i -E 's/^[# ]*ChallengeResponseAuthentication .*/#&/' "$CFG"
+            sed -i -E 's/^[# ]*KbdInteractiveAuthentication .*/#&/' "$CFG"
+            sed -i -E 's/^[# ]*UsePAM .*/#&/' "$CFG"
+
+            # Если меняем порт, удалим старые Port-инструкции
+            if [ "$NEW_PORT" != "22" ]; then
+              sed -i -E 's/^[# ]*Port .*/#&/' "$CFG"
+            fi
+
+            cat >> "$CFG" <<EOF
+
+            # === uletnaya hardening ===
+            PubkeyAuthentication yes
+            PasswordAuthentication no
+            ChallengeResponseAuthentication no
+            KbdInteractiveAuthentication no
+            UsePAM yes
+            PermitRootLogin prohibit-password
+            EOF
+
+            if [ "$NEW_PORT" != "22" ]; then
+              echo "Port $NEW_PORT" >> "$CFG"
+            fi
+
+            cat >> "$CFG" <<'EOF'
+            # === uletnaya hardening end ===
+            EOF
+
+            # Валидируем перед reload — иначе sshd упадёт и потеряем доступ
+            sshd -t
+
+            # Если порт меняем — открываем в UFW ДО рестарта sshd
+            if [ "$NEW_PORT" != "22" ]; then
+              ufw allow "$NEW_PORT"/tcp || true
+            fi
+
+            systemctl reload ssh || systemctl reload sshd
+            echo "✓ sshd reloaded on port ${NEW_PORT}"
+
+      - name: Configure UFW firewall (22 + new port if changed, 80, 443)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            set -e
+            NEW_PORT="${{ inputs.change_ssh_port }}"
+
+            ufw --force reset >/dev/null
+            ufw default deny incoming
+            ufw default allow outgoing
+
+            ufw allow 22/tcp                     # текущий, чтобы не отрезать сессию
+            [ "$NEW_PORT" != "22" ] && ufw allow "$NEW_PORT"/tcp
+            ufw allow 80/tcp
+            ufw allow 443/tcp
+
+            ufw --force enable
+            ufw status verbose
+            echo "✓ UFW enabled"
+
+      - name: Verify SSH still works (smoke test)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ inputs.change_ssh_port || secrets.DEPLOY_PORT }}
+          script: |
+            echo "✓ Hardened SSH still accepts our key"
+            uptime
+            fail2ban-client status sshd | head -10
