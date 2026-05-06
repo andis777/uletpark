@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ScrollView, Text, View, StyleSheet, ActivityIndicator, TextInput, Alert, TouchableOpacity, Share } from "react-native";
+import { ScrollView, Text, View, StyleSheet, ActivityIndicator, TextInput, TouchableOpacity, Share } from "react-native";
 import { getLoyalty, applyReferral } from "@/lib/api";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
+import { notify } from "@/lib/ui";
 
 export default function Loyalty() {
   const qc = useQueryClient();
@@ -15,7 +16,7 @@ export default function Loyalty() {
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["loyalty"] });
       qc.invalidateQueries({ queryKey: ["me"] });
-      Alert.alert("Бонус начислен", `+${r.bonusRub} ₽ на счёт`);
+      notify("Бонус начислен", `+${r.bonusRub} ₽ на счёт`);
       setRefCode(""); setShowInput(false);
     },
     onError: (e: Error) => {
@@ -23,7 +24,7 @@ export default function Loyalty() {
         : e.message === "ALREADY_USED" ? "Ты уже применял реферальный код"
         : e.message === "SELF_REFERRAL" ? "Это твой собственный код"
         : e.message;
-      Alert.alert("Не получилось", msg);
+      notify("Не получилось", msg);
     },
   });
 

@@ -1,8 +1,9 @@
 import { useLocalSearchParams, router } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ScrollView, Text, View, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from "react-native";
+import { ScrollView, Text, View, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
 import { getBooking, cancelBooking } from "@/lib/api";
 import { Button } from "@/components/Button";
+import { confirmAction, notify } from "@/lib/ui";
 
 export default function BookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,16 +20,14 @@ export default function BookingDetail() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bookings"] });
       qc.invalidateQueries({ queryKey: ["booking", id] });
-      Alert.alert("Бронь отменена");
+      notify("Бронь отменена");
     },
-    onError: (e: Error) => Alert.alert("Не удалось отменить", e.message),
+    onError: (e: Error) => notify("Не удалось отменить", e.message),
   });
 
-  const onCancel = () => {
-    Alert.alert("Отменить бронь?", "Это действие нельзя отменить.", [
-      { text: "Назад" },
-      { text: "Отменить", style: "destructive", onPress: () => cancel.mutate() },
-    ]);
+  const onCancel = async () => {
+    const ok = await confirmAction("Отменить бронь?", "Это действие нельзя отменить.");
+    if (ok) cancel.mutate();
   };
 
   if (isLoading) return <ActivityIndicator color="#3FB8AF" style={{ flex: 1, backgroundColor: "#1F2430" }} />;
@@ -65,7 +64,7 @@ export default function BookingDetail() {
 
       {upcoming && (
         <View style={{ marginTop: 32, gap: 8 }}>
-          <Button label="Продлить бронь" onPress={() => Alert.alert("Скоро", "Продление в разработке")} variant="secondary" />
+          <Button label="Продлить бронь" onPress={() => notify("Скоро", "Продление в разработке")} variant="secondary" />
           <Button label="Отменить" onPress={onCancel} variant="danger" loading={cancel.isPending} />
         </View>
       )}

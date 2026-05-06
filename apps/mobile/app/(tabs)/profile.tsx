@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ScrollView, Text, View, StyleSheet, TextInput, Alert, TouchableOpacity, ActivityIndicator } from "react-native";
+import { ScrollView, Text, View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clearTokens, getMe, updateMe } from "@/lib/api";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
+import { confirmAction, notify } from "@/lib/ui";
 
 export default function Profile() {
   const qc = useQueryClient();
@@ -25,20 +26,16 @@ export default function Profile() {
     mutationFn: () => updateMe({ firstName: first || undefined, lastName: last || undefined, email: email || undefined }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["me"] });
-      Alert.alert("Сохранено");
+      notify("Сохранено");
     },
-    onError: (e: Error) => Alert.alert("Не удалось сохранить", e.message),
+    onError: (e: Error) => notify("Не удалось сохранить", e.message),
   });
 
   async function logout() {
-    Alert.alert("Выйти?", "", [
-      { text: "Отмена" },
-      {
-        text: "Выйти",
-        style: "destructive",
-        onPress: async () => { await clearTokens(); router.replace("/(auth)/login"); },
-      },
-    ]);
+    const ok = await confirmAction("Выйти из аккаунта?", "");
+    if (!ok) return;
+    await clearTokens();
+    router.replace("/(auth)/login");
   }
 
   if (isLoading || !data) {
