@@ -209,7 +209,12 @@ export async function syncFromPipeline(opts: {
  * Вызывается в verify-otp при первом логине.
  */
 export async function linkBookingsToUserByPhone(userId: string, phone: string): Promise<{ linked: number }> {
-  if (amocrmInfo.isStub) return { linked: 0 };
+  // STUB режим: даём мок-брони из listLeadsByPhone (которая в STUB вернёт 2 фейковых лида).
+  // Раньше тут был early-return чтобы не засорять БД, но это мешает демонстрировать UI.
+  // Если нужно строго пустую БД в STUB — установи AMOCRM_DISABLE_STUB_LINK=1.
+  if (amocrmInfo.isStub && process.env.AMOCRM_DISABLE_STUB_LINK === "1") {
+    return { linked: 0 };
+  }
 
   // 1. Найти все лиды контакта в amoCRM по телефону
   const leads = await listLeadsByPhone(phone);
