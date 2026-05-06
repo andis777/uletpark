@@ -21,7 +21,7 @@ async function patchContact(contactId: number, customFields: { field_id: number;
     return;
   }
   // Реальная имплементация — после получения токенов и field_id
-  const { default: amocrm } = await import("./amocrm");
+  const amocrm = await import("./amocrm");
   // ... вызов amoFetch(`/contacts/${contactId}`, PATCH, body)
   // Пока намеренно оставлен no-op — добавим в Phase 2.5 после discovery.
   void amocrm;

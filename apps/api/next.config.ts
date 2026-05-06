@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
-const config: NextConfig = {
+// eslint key was removed from NextConfig type in Next 16; keep as runtime hint
+const config: NextConfig & { eslint?: { ignoreDuringBuilds?: boolean } } = {
   output: "standalone",
   transpilePackages: ["@uletnaya/db", "@uletnaya/shared"],
   // Для первого деплоя: skip typescript/eslint blocking — фиксим в CI отдельно
