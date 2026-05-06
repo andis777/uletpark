@@ -7,13 +7,6 @@ name: Deploy API
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/api/**"
-      - "packages/**"
-      - "Dockerfile"
-      - "docker-compose.fastpanel.yml"
-      - "deploy/**"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 jobs:
