@@ -41,11 +41,13 @@ const Body = z.object({
   airport: z.enum(["SVO", "DME", "VKO"]),
   dateFrom: z.string().datetime(),
   dateTo: z.string().datetime(),
-  carNumber: z.string().min(3).max(15),
+  carNumber: z.string().min(1).max(15),
   carModel: z.string().optional(),
   notes: z.string().optional(),
   promoCode: z.string().optional(),
   useLoyaltyPoints: z.number().int().nonnegative().optional(),
+  service: z.enum(["parking", "nochevka"]).optional(),
+  nochevkaHours: z.union([z.literal(6), z.literal(12), z.literal(24)]).optional(),
 });
 
 export async function POST(req: Request) {

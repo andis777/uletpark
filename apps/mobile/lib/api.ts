@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import * as SecureStore from "expo-secure-store";
+import { storage } from "./storage";
 import type {
   AuthTokens,
   BookingDTO,
@@ -18,13 +18,13 @@ const ACCESS_KEY = "access_token";
 const REFRESH_KEY = "refresh_token";
 
 export async function setTokens(t: { accessToken: string; refreshToken: string }) {
-  await SecureStore.setItemAsync(ACCESS_KEY, t.accessToken);
-  await SecureStore.setItemAsync(REFRESH_KEY, t.refreshToken);
+  await storage.setItemAsync(ACCESS_KEY, t.accessToken);
+  await storage.setItemAsync(REFRESH_KEY, t.refreshToken);
 }
-export async function getAccessToken() { return SecureStore.getItemAsync(ACCESS_KEY); }
+export async function getAccessToken() { return storage.getItemAsync(ACCESS_KEY); }
 export async function clearTokens() {
-  await SecureStore.deleteItemAsync(ACCESS_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_KEY);
+  await storage.deleteItemAsync(ACCESS_KEY);
+  await storage.deleteItemAsync(REFRESH_KEY);
 }
 export async function isAuthed(): Promise<boolean> {
   const t = await getAccessToken();
@@ -79,7 +79,11 @@ export const cancelBooking = (id: string) =>
   call<{ ok: true; status: string }>(`/api/bookings/${id}/cancel`, { method: "POST" });
 
 /* --- Calculator (preview без бронирования) --- */
-export const previewCalc = (req: CalculatorRequest) =>
+export type CalcRequestExtended = CalculatorRequest & {
+  service?: "parking" | "nochevka";
+  nochevkaHours?: 6 | 12 | 24;
+};
+export const previewCalc = (req: CalcRequestExtended) =>
   call<CalculatorResponse>("/api/calc", { method: "POST", body: JSON.stringify(req), auth: false });
 
 /* --- Loyalty --- */

@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  ScrollView, Text, View, StyleSheet, ActivityIndicator,
-  TextInput, Alert, TouchableOpacity, Share,
-} from "react-native";
+import { ScrollView, Text, View, StyleSheet, ActivityIndicator, TextInput, Alert, TouchableOpacity, Share } from "react-native";
 import { getLoyalty, applyReferral } from "@/lib/api";
-import { Button } from "@/components/Button";
+import { colors, fonts, radii, spacing } from "@/lib/theme";
 
 export default function Loyalty() {
   const qc = useQueryClient();
@@ -18,104 +15,115 @@ export default function Loyalty() {
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["loyalty"] });
       qc.invalidateQueries({ queryKey: ["me"] });
-      Alert.alert("Бонус начислен", `+${r.bonusRub} ₽ на счёт лояльности`);
-      setRefCode("");
-      setShowInput(false);
+      Alert.alert("Бонус начислен", `+${r.bonusRub} ₽ на счёт`);
+      setRefCode(""); setShowInput(false);
     },
     onError: (e: Error) => {
-      const msg = e.message === "CODE_NOT_FOUND" ? "Код не найден" :
-                  e.message === "ALREADY_USED"   ? "Ты уже применял реферальный код" :
-                  e.message === "SELF_REFERRAL"  ? "Это твой собственный код" :
-                  e.message;
+      const msg = e.message === "CODE_NOT_FOUND" ? "Код не найден"
+        : e.message === "ALREADY_USED" ? "Ты уже применял реферальный код"
+        : e.message === "SELF_REFERRAL" ? "Это твой собственный код"
+        : e.message;
       Alert.alert("Не получилось", msg);
     },
   });
 
   if (isLoading || !data) {
-    return <ActivityIndicator color="#3FB8AF" style={{ flex: 1, backgroundColor: "#1F2430" }} />;
+    return <ActivityIndicator color={colors.primary} style={{ flex: 1, backgroundColor: colors.surface }} />;
   }
 
   async function shareCode() {
     if (!data?.referralCode) return;
     try {
       await Share.share({
-        message: `Бронируй парковку у Шереметьево/Домодедово/Внуково в Улётной парковке по моему промокоду ${data.referralCode} — получишь ${data.referralBonusRub} ₽ на счёт лояльности. https://uletnayaparkovka.ru`,
+        message: `Бронируй парковку у Шереметьево / Домодедово / Внуково в Улётной парковке по моему промокоду ${data.referralCode} — получишь ${data.referralBonusRub} ₽ на счёт лояльности. https://uletnayaparkovka.ru`,
       });
-    } catch { /* user cancelled */ }
+    } catch {}
   }
 
   return (
-    <ScrollView style={s.wrap} contentContainerStyle={{ padding: 24, paddingTop: 64, paddingBottom: 100 }}>
-      <View style={s.loyCard}>
-        <Text style={s.tier}>{data.tier.toUpperCase()}</Text>
-        <Text style={s.points}>{data.points.toLocaleString("ru")}</Text>
-        <Text style={s.label}>баллов · 1 балл = 1 ₽</Text>
-        {data.nextTier && (
-          <View style={s.progBox}>
-            <View style={s.progBg}>
-              <View style={[s.progFill, { width: `${data.progress * 100}%` }]} />
-            </View>
-            <Text style={s.progTxt}>
-              До тира {data.nextTier.toUpperCase()}: ещё {data.remainingToNextTierRub.toLocaleString("ru")} ₽ покупок
-            </Text>
-          </View>
-        )}
+    <ScrollView style={s.wrap} contentContainerStyle={s.content}>
+      <View style={s.header}>
+        <Text style={s.brand}>Карта лояльности</Text>
       </View>
 
-      {data.referralCode && (
-        <View style={s.refer}>
-          <Text style={s.referLabel}>Пригласи друга</Text>
-          <Text style={s.referCode}>{data.referralCode}</Text>
-          <Text style={s.referHint}>
-            Друг получит {data.referralBonusRub} ₽ бонус{"\n"}
-            Ты — {data.referralBonusRub} ₽ при первой брони друга
-          </Text>
-          <TouchableOpacity style={s.shareBtn} onPress={shareCode}>
-            <Text style={s.shareTxt}>Поделиться</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View style={s.body}>
+        {/* Главная карточка тира */}
+        <View style={s.loyCard}>
+          <Text style={s.loyTier}>{data.tier.toUpperCase()}</Text>
+          <Text style={s.loyPoints}>{data.points.toLocaleString("ru")}</Text>
+          <Text style={s.loyLabel}>баллов · 1 балл = 1 ₽</Text>
 
-      {!showInput ? (
-        <TouchableOpacity onPress={() => setShowInput(true)} style={{ marginTop: 16, padding: 16 }}>
-          <Text style={s.applyTrigger}>+ У меня есть реферальный код</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={s.applyBox}>
-          <Text style={s.applyLabel}>Введи код друга</Text>
-          <TextInput
-            style={s.input}
-            value={refCode}
-            onChangeText={(t) => setRefCode(t.toUpperCase())}
-            placeholder="UPABC123"
-            placeholderTextColor="#5a5d65"
-            autoCapitalize="characters"
-          />
-          <Button
-            label={`Получить +${data.referralBonusRub} ₽`}
-            onPress={() => applyRef.mutate()}
-            loading={applyRef.isPending}
-            disabled={refCode.length < 4}
-          />
-        </View>
-      )}
-
-      {data.transactions.length > 0 && (
-        <View style={{ marginTop: 32 }}>
-          <Text style={s.sectionTitle}>История</Text>
-          {data.transactions.map(t => (
-            <View key={t.id} style={s.txRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.txReason}>{labelReason(t.reason)}</Text>
-                <Text style={s.txDate}>{new Date(t.createdAt).toLocaleDateString("ru")}</Text>
+          {data.nextTier && (
+            <View style={s.progBox}>
+              <View style={s.progBg}>
+                <View style={[s.progFill, { width: `${data.progress * 100}%` }]} />
               </View>
-              <Text style={[s.txDelta, { color: t.delta > 0 ? "#3FB8AF" : "#FF6B4A" }]}>
-                {t.delta > 0 ? "+" : ""}{t.delta}
+              <Text style={s.progTxt}>
+                До тира {data.nextTier.toUpperCase()}: ещё {data.remainingToNextTierRub.toLocaleString("ru")} ₽
               </Text>
             </View>
-          ))}
+          )}
         </View>
-      )}
+
+        {/* Реферал */}
+        {data.referralCode && (
+          <View style={s.refer}>
+            <Text style={s.referLabel}>ПРИГЛАСИ ДРУГА</Text>
+            <Text style={s.referCode}>{data.referralCode}</Text>
+            <Text style={s.referHint}>
+              Друг получит {data.referralBonusRub} ₽ бонус{"\n"}
+              Ты — {data.referralBonusRub} ₽ при первой брони друга
+            </Text>
+            <TouchableOpacity style={s.shareBtn} onPress={shareCode}>
+              <Text style={s.shareTxt}>Поделиться</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Apply referral */}
+        {!showInput ? (
+          <TouchableOpacity onPress={() => setShowInput(true)} style={{ padding: spacing.lg, alignItems: "center" }}>
+            <Text style={s.applyTrigger}>+ У меня есть реферальный код</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={s.applyBox}>
+            <Text style={s.applyLabel}>Введи код друга</Text>
+            <TextInput
+              style={s.input}
+              value={refCode}
+              onChangeText={(t) => setRefCode(t.toUpperCase())}
+              placeholder="UPABC123"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity
+              style={[s.cta, refCode.length < 4 && { opacity: 0.5 }]}
+              disabled={refCode.length < 4 || applyRef.isPending}
+              onPress={() => applyRef.mutate()}
+            >
+              <Text style={s.ctaTxt}>{applyRef.isPending ? "..." : `Получить +${data.referralBonusRub} ₽`}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* История */}
+        {data.transactions.length > 0 && (
+          <>
+            <Text style={s.histTitle}>ИСТОРИЯ</Text>
+            {data.transactions.map(t => (
+              <View key={t.id} style={s.txRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.txReason}>{labelReason(t.reason)}</Text>
+                  <Text style={s.txDate}>{new Date(t.createdAt).toLocaleDateString("ru")}</Text>
+                </View>
+                <Text style={[s.txDelta, { color: t.delta > 0 ? colors.success : colors.danger }]}>
+                  {t.delta > 0 ? "+" : ""}{t.delta}
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -131,28 +139,52 @@ function labelReason(r: string) {
 }
 
 const s = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: "#1F2430" },
-  loyCard: { backgroundColor: "#2D3039", padding: 32, borderRadius: 16, alignItems: "center", marginBottom: 16 },
-  tier: { color: "#3FB8AF", fontSize: 12, letterSpacing: 4, marginBottom: 16 },
-  points: { color: "#fff", fontSize: 64, fontWeight: "200" },
-  label: { color: "#8a8580", marginBottom: 24, fontSize: 11 },
-  progBox: { width: "100%", marginTop: 16 },
-  progBg: { height: 6, backgroundColor: "#1F2430", borderRadius: 3, overflow: "hidden" },
-  progFill: { height: 6, backgroundColor: "#FF6B4A" },
-  progTxt: { color: "#8a8580", fontSize: 11, marginTop: 8, textAlign: "center" },
-  refer: { backgroundColor: "#2D3039", padding: 24, borderRadius: 16, alignItems: "center" },
-  referLabel: { color: "#8a8580", fontSize: 9, letterSpacing: 2, marginBottom: 8, textTransform: "uppercase" },
-  referCode: { color: "#3FB8AF", fontSize: 28, fontWeight: "300", letterSpacing: 4 },
-  referHint: { color: "#8a8580", fontSize: 11, textAlign: "center", marginTop: 12, lineHeight: 18 },
-  shareBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: "#3FB8AF", borderRadius: 100 },
-  shareTxt: { color: "#1F2430", fontWeight: "600", fontSize: 13 },
-  applyTrigger: { color: "#3FB8AF", fontSize: 13, textAlign: "center" },
-  applyBox: { backgroundColor: "#2D3039", padding: 18, borderRadius: 14, marginTop: 16 },
-  applyLabel: { color: "#8a8580", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 },
-  input: { backgroundColor: "#1F2430", color: "#fff", padding: 12, borderRadius: 10, fontSize: 16, letterSpacing: 2, marginBottom: 12 },
-  sectionTitle: { color: "#8a8580", fontSize: 12, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 },
-  txRow: { flexDirection: "row", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#2D3039", alignItems: "center" },
-  txReason: { color: "#fff", fontSize: 13 },
-  txDate: { color: "#5a5d65", fontSize: 11, marginTop: 2 },
-  txDelta: { fontSize: 16, fontWeight: "500" },
+  wrap: { flex: 1, backgroundColor: colors.surface },
+  content: { paddingBottom: 100 },
+
+  header: { backgroundColor: colors.graphite, paddingHorizontal: spacing.xl, paddingTop: 48, paddingBottom: spacing.lg },
+  brand: { color: colors.textOnDark, fontSize: 22, fontWeight: "300", fontFamily: fonts.heading },
+
+  body: { padding: spacing.xl },
+
+  loyCard: {
+    backgroundColor: colors.primary,
+    padding: spacing.xxl,
+    borderRadius: radii.xl,
+    alignItems: "center",
+    marginBottom: spacing.lg,
+  },
+  loyTier: { color: colors.graphite, fontSize: 11, letterSpacing: 4, fontWeight: "800", marginBottom: spacing.md },
+  loyPoints: { color: colors.textOnDark, fontSize: 56, fontWeight: "200", fontFamily: fonts.heading },
+  loyLabel: { color: colors.textOnDark, opacity: 0.8, fontSize: 11, marginTop: 4 },
+  progBox: { width: "100%", marginTop: spacing.lg },
+  progBg: { height: 4, backgroundColor: "rgba(0,0,0,0.15)", borderRadius: 2, overflow: "hidden" },
+  progFill: { height: 4, backgroundColor: colors.graphite },
+  progTxt: { color: colors.textOnDark, opacity: 0.85, fontSize: 11, marginTop: 8, textAlign: "center" },
+
+  refer: {
+    backgroundColor: colors.surfaceMuted,
+    padding: spacing.xl,
+    borderRadius: radii.lg,
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  referLabel: { color: colors.textSecondary, fontSize: 10, letterSpacing: 2, fontWeight: "700", marginBottom: spacing.sm },
+  referCode: { color: colors.primary, fontSize: 26, fontWeight: "700", letterSpacing: 4, fontFamily: fonts.heading },
+  referHint: { color: colors.textSecondary, fontSize: 12, textAlign: "center", marginTop: spacing.md, lineHeight: 18 },
+  shareBtn: { marginTop: spacing.md, paddingHorizontal: spacing.xl, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: radii.pill },
+  shareTxt: { color: colors.textOnDark, fontWeight: "700", fontSize: 13 },
+
+  applyTrigger: { color: colors.primary, fontSize: 13, fontWeight: "600" },
+  applyBox: { backgroundColor: colors.surfaceMuted, padding: spacing.lg, borderRadius: radii.md, marginBottom: spacing.lg },
+  applyLabel: { color: colors.textSecondary, fontSize: 11, letterSpacing: 1.5, fontWeight: "600", textTransform: "uppercase", marginBottom: spacing.sm },
+  input: { backgroundColor: colors.surface, color: colors.textPrimary, padding: spacing.md, borderRadius: radii.md, fontSize: 16, letterSpacing: 2, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border },
+  cta: { backgroundColor: colors.primary, padding: spacing.md, borderRadius: radii.md, alignItems: "center" },
+  ctaTxt: { color: colors.textOnDark, fontSize: 14, fontWeight: "700" },
+
+  histTitle: { color: colors.textSecondary, fontSize: 11, letterSpacing: 2, fontWeight: "700", marginTop: spacing.xl, marginBottom: spacing.sm },
+  txRow: { flexDirection: "row", paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider, alignItems: "center" },
+  txReason: { color: colors.textPrimary, fontSize: 13 },
+  txDate: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
+  txDelta: { fontSize: 16, fontWeight: "700" },
 });

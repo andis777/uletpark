@@ -28,7 +28,7 @@
     ],
     "experiments": { "typedRoutes": true },
     "extra": {
-      "apiUrl": "https://api.uletnayaparkovka.ru"
+      "apiUrl": "http://api.uletnayaparkovka.ru"
     }
   }
 }

@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 import { isAuthed } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/lib/push";
 import { initAnalytics } from "@/lib/analytics";
+import { colors } from "@/lib/theme";
 
 const qc = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -18,8 +19,13 @@ function AuthGate() {
 
   useEffect(() => {
     (async () => {
-      const ok = await isAuthed();
-      setAuthed(ok);
+      try {
+        const ok = await isAuthed();
+        setAuthed(ok);
+      } catch (e) {
+        console.warn("[AuthGate] isAuthed failed:", e);
+        setAuthed(false);
+      }
       setReady(true);
       initAnalytics();
     })();
@@ -32,15 +38,14 @@ function AuthGate() {
       router.replace("/(auth)/login");
     } else if (authed && inAuthGroup) {
       router.replace("/(tabs)");
-      // Зарегистрируем push-токен после успешного логина
       registerForPushNotificationsAsync().catch(() => {});
     }
-  }, [ready, authed, segments]);
+  }, [ready, authed, segments, router]);
 
   if (!ready) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#1F2430", justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator color="#3FB8AF" size="large" />
+      <View style={{ flex: 1, backgroundColor: colors.surface, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
   }
@@ -51,12 +56,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={qc}>
       <AuthGate />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#1F2430" } }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="booking/new" options={{ presentation: "modal" }} />
-        <Stack.Screen name="booking/[id]" />
-      </Stack>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surface } }} />
     </QueryClientProvider>
   );
 }

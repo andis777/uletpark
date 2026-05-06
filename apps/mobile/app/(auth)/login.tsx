@@ -1,88 +1,189 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { requestOtp, verifyOtp, setTokens } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
+import { colors, fonts, radii, spacing } from "@/lib/theme";
 
 export default function Login() {
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
-  useEffect(() => { analytics.screenView("login"); analytics.authStarted(); }, []);
+  useEffect(() => {
+    analytics.screenView("login");
+    analytics.authStarted();
+  }, []);
 
   async function onRequest() {
+    setErr(null);
+    setInfo(null);
     setBusy(true);
     try {
+      console.log("[login] requestOtp", phone);
       const r = await requestOtp({ phone });
-      if (r.devCode) Alert.alert("DEV", `Код для теста: ${r.devCode}`);
+      console.log("[login] response", r);
+      setInfo(r.devCode ? `Тестовый код: ${r.devCode}` : "Код отправлен. В STUB-режиме код: 111111");
       setStep("code");
-    } catch (e) { Alert.alert("Ошибка", String(e)); }
-    finally { setBusy(false); }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[login] error", e);
+      setErr(`Не удалось отправить: ${msg}`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onVerify() {
+    setErr(null);
     setBusy(true);
     try {
       const r = await verifyOtp({ phone, code });
       await setTokens({ accessToken: r.accessToken, refreshToken: r.refreshToken });
-      analytics.authCompleted();
       router.replace("/(tabs)");
-    } catch (e) { Alert.alert("Ошибка", String(e)); }
-    finally { setBusy(false); }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErr(`Не удалось войти: ${msg}`);
+    } finally {
+      setBusy(false);
+    }
   }
+
+  // Минимально: 11 цифр для российского номера или 10 без 7
+  const phoneOk = phone.replace(/\D/g, "").length >= 10;
+  const codeOk = code.length === 6;
 
   return (
     <View style={s.wrap}>
-      <Text style={s.brand}>Улётная парковка</Text>
-      <Text style={s.title}>{step === "phone" ? "Войти по номеру телефона" : "Введите код из SMS"}</Text>
+      <View style={s.header}>
+        <Text style={s.brand}>✈ Улётная парковка</Text>
+      </View>
 
-      {step === "phone" ? (
-        <>
-          <TextInput
-            style={s.input}
-            placeholder="+7 999 123 45 67"
-            placeholderTextColor="#8a8580"
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            autoFocus
-          />
-          <TouchableOpacity style={s.btn} onPress={onRequest} disabled={busy || phone.length < 10}>
-            <Text style={s.btnTxt}>{busy ? "..." : "Получить код"}</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <TextInput
-            style={s.input}
-            placeholder="000000"
-            placeholderTextColor="#8a8580"
-            keyboardType="number-pad"
-            maxLength={6}
-            value={code}
-            onChangeText={setCode}
-            autoFocus
-          />
-          <TouchableOpacity style={s.btn} onPress={onVerify} disabled={busy || code.length !== 6}>
-            <Text style={s.btnTxt}>{busy ? "..." : "Войти"}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setStep("phone")}>
-            <Text style={s.alt}>Изменить номер</Text>
-          </TouchableOpacity>
-        </>
-      )}
+      <View style={s.body}>
+        <Text style={s.eyebrow}>{step === "phone" ? "ВХОД ПО ТЕЛЕФОНУ" : "ПОДТВЕРЖДЕНИЕ"}</Text>
+        <Text style={s.title}>
+          {step === "phone" ? "Введите номер телефона" : "Введите код из SMS"}
+        </Text>
+        <Text style={s.lede}>
+          {step === "phone"
+            ? "Отправим SMS с кодом подтверждения"
+            : `Код отправлен на ${phone}. Действует 5 минут.`}
+        </Text>
+
+        {step === "phone" ? (
+          <>
+            <TextInput
+              style={s.input}
+              placeholder="+7 999 123 45 67"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+              autoFocus
+              onSubmitEditing={() => !busy && onRequest()}
+            />
+            <Text style={s.debug}>Цифр введено: {phone.replace(/\D/g, "").length} (нужно ≥10)</Text>
+            {err && <Text style={s.err}>{err}</Text>}
+            {info && <Text style={s.info}>{info}</Text>}
+            <TouchableOpacity
+              style={[s.btn, busy && s.btnDisabled]}
+              onPress={onRequest}
+              disabled={busy}
+              activeOpacity={0.7}
+            >
+              {busy ? <ActivityIndicator color={colors.textOnDark} /> : <Text style={s.btnTxt}>Получить код</Text>}
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <TextInput
+              style={[s.input, s.inputCode]}
+              placeholder="111111"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="number-pad"
+              maxLength={6}
+              value={code}
+              onChangeText={setCode}
+              autoFocus
+              onSubmitEditing={() => codeOk && !busy && onVerify()}
+            />
+            {info && <Text style={s.info}>{info}</Text>}
+            {err && <Text style={s.err}>{err}</Text>}
+            <TouchableOpacity
+              style={[s.btn, (busy || !codeOk) && s.btnDisabled]}
+              onPress={onVerify}
+              disabled={busy || !codeOk}
+            >
+              {busy ? <ActivityIndicator color={colors.textOnDark} /> : <Text style={s.btnTxt}>Войти</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setStep("phone"); setCode(""); setErr(null); }}>
+              <Text style={s.alt}>Изменить номер</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        <Text style={s.legal}>
+          Нажимая, вы соглашаетесь с офертой и политикой обработки персональных данных
+        </Text>
+      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: "#1F2430", padding: 24, justifyContent: "center" },
-  brand: { color: "#3FB8AF", fontSize: 14, letterSpacing: 4, textTransform: "uppercase", marginBottom: 32 },
-  title: { color: "#fff", fontSize: 28, fontWeight: "300", marginBottom: 32 },
-  input: { backgroundColor: "#2D3039", color: "#fff", padding: 16, borderRadius: 12, fontSize: 18, marginBottom: 16 },
-  btn: { backgroundColor: "#FF6B4A", padding: 16, borderRadius: 12, alignItems: "center" },
-  btnTxt: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  alt: { color: "#8a8580", textAlign: "center", marginTop: 16 },
+  wrap: { flex: 1, backgroundColor: colors.surface },
+  header: {
+    backgroundColor: colors.graphite,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 48,
+    paddingBottom: spacing.lg,
+  },
+  brand: { color: colors.textOnDark, fontSize: 18, fontWeight: "600", fontFamily: fonts.heading },
+
+  body: { flex: 1, paddingHorizontal: spacing.xl, paddingTop: spacing.xxxl },
+  eyebrow: { color: colors.primary, fontSize: 11, letterSpacing: 3, fontWeight: "600", marginBottom: spacing.md },
+  title: { color: colors.textPrimary, fontSize: 28, fontWeight: "300", fontFamily: fonts.heading, marginBottom: spacing.sm, lineHeight: 34 },
+  lede: { color: colors.textSecondary, fontSize: 14, marginBottom: spacing.xxl, lineHeight: 22 },
+
+  input: {
+    backgroundColor: colors.surfaceMuted,
+    color: colors.textPrimary,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    fontSize: 18,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  inputCode: { letterSpacing: 8, textAlign: "center", fontSize: 24, fontWeight: "600" },
+
+  err: {
+    color: colors.danger,
+    backgroundColor: colors.dangerBg,
+    padding: spacing.md,
+    borderRadius: radii.sm,
+    marginBottom: spacing.md,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  info: {
+    color: colors.success,
+    backgroundColor: colors.successBg,
+    padding: spacing.md,
+    borderRadius: radii.sm,
+    marginBottom: spacing.md,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  btn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radii.md, alignItems: "center", marginBottom: spacing.md, minHeight: 52, justifyContent: "center" },
+  btnDisabled: { backgroundColor: colors.textMuted, opacity: 0.5 },
+  btnTxt: { color: colors.textOnDark, fontSize: 16, fontWeight: "700", letterSpacing: 0.3 },
+
+  alt: { color: colors.textSecondary, textAlign: "center", marginTop: spacing.sm, fontSize: 13 },
+  legal: { color: colors.textMuted, fontSize: 11, textAlign: "center", marginTop: "auto", paddingBottom: spacing.xl, lineHeight: 16 },
+  debug: { color: colors.textMuted, fontSize: 11, marginBottom: spacing.sm, fontFamily: "monospace" },
 });

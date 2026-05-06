@@ -47,6 +47,11 @@ export async function getUserFromHeader(authHeader: string | null): Promise<JwtP
 /* --- OTP --- */
 
 export function generateOtp(): string {
+  // В STUB-режиме SMS.ru — фиксированный код для тестирования.
+  // На проде с боевым SMSRU_API_ID будет случайный 6-значный.
+  if (!process.env.SMSRU_API_ID || process.env.SMSRU_API_ID === "stub") {
+    return "111111";
+  }
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 

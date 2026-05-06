@@ -3,7 +3,7 @@ import { ScrollView, Text, View, StyleSheet, TextInput, Alert, TouchableOpacity,
 import { router } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clearTokens, getMe, updateMe } from "@/lib/api";
-import { Button } from "@/components/Button";
+import { colors, fonts, radii, spacing } from "@/lib/theme";
 
 export default function Profile() {
   const qc = useQueryClient();
@@ -42,62 +42,103 @@ export default function Profile() {
   }
 
   if (isLoading || !data) {
-    return <ActivityIndicator color="#3FB8AF" style={{ flex: 1, backgroundColor: "#1F2430" }} />;
+    return <ActivityIndicator color={colors.primary} style={{ flex: 1, backgroundColor: colors.surface }} />;
   }
 
   return (
-    <ScrollView style={s.wrap} contentContainerStyle={{ padding: 24, paddingTop: 64 }}>
-      <Text style={s.h1}>Профиль</Text>
-
-      <View style={s.phoneCard}>
-        <Text style={s.phoneLabel}>Телефон</Text>
-        <Text style={s.phoneValue}>{data.user.phone}</Text>
+    <ScrollView style={s.wrap} contentContainerStyle={s.content}>
+      <View style={s.header}>
+        <Text style={s.brand}>Профиль</Text>
       </View>
 
-      <Text style={s.label}>Имя</Text>
-      <TextInput style={s.input} value={first} onChangeText={setFirst} placeholder="Имя" placeholderTextColor="#5a5d65" />
+      <View style={s.body}>
+        <View style={s.phoneCard}>
+          <Text style={s.label}>Телефон</Text>
+          <Text style={s.phone}>{data.user.phone}</Text>
+        </View>
 
-      <Text style={s.label}>Фамилия</Text>
-      <TextInput style={s.input} value={last} onChangeText={setLast} placeholder="Фамилия" placeholderTextColor="#5a5d65" />
+        <Text style={s.label}>Имя</Text>
+        <TextInput style={s.input} value={first} onChangeText={setFirst} placeholder="Имя" placeholderTextColor={colors.textMuted} />
 
-      <Text style={s.label}>Email</Text>
-      <TextInput
-        style={s.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="you@example.com"
-        placeholderTextColor="#5a5d65"
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+        <Text style={s.label}>Фамилия</Text>
+        <TextInput style={s.input} value={last} onChangeText={setLast} placeholder="Фамилия" placeholderTextColor={colors.textMuted} />
 
-      <Button label="Сохранить" onPress={() => save.mutate()} loading={save.isPending} style={{ marginTop: 16 }} />
+        <Text style={s.label}>Email</Text>
+        <TextInput
+          style={s.input}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          placeholderTextColor={colors.textMuted}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
 
-      <View style={s.section}>
-        <Text style={s.sectionLabel}>Тариф лояльности</Text>
-        <Text style={s.tier}>{data.user.loyaltyTier.toUpperCase()}</Text>
-        <Text style={s.points}>{data.user.loyaltyPoints} баллов</Text>
+        <TouchableOpacity style={s.cta} onPress={() => save.mutate()} disabled={save.isPending}>
+          <Text style={s.ctaTxt}>{save.isPending ? "..." : "Сохранить"}</Text>
+        </TouchableOpacity>
+
+        <View style={s.tierCard}>
+          <Text style={s.tierLabel}>Тариф лояльности</Text>
+          <Text style={s.tier}>{data.user.loyaltyTier.toUpperCase()}</Text>
+          <Text style={s.points}>{data.user.loyaltyPoints} баллов</Text>
+        </View>
+
+        <TouchableOpacity style={s.logout} onPress={logout}>
+          <Text style={s.logoutTxt}>Выйти из аккаунта</Text>
+        </TouchableOpacity>
       </View>
-
-      <TouchableOpacity style={s.logout} onPress={logout}>
-        <Text style={s.logoutTxt}>Выйти из аккаунта</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: "#1F2430" },
-  h1: { color: "#fff", fontSize: 28, fontWeight: "300", marginBottom: 24 },
-  phoneCard: { backgroundColor: "#2D3039", padding: 16, borderRadius: 12, marginBottom: 24 },
-  phoneLabel: { color: "#8a8580", fontSize: 11, letterSpacing: 2, textTransform: "uppercase" },
-  phoneValue: { color: "#fff", fontSize: 18, marginTop: 4, fontWeight: "500" },
-  label: { color: "#8a8580", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginTop: 16, marginBottom: 8 },
-  input: { backgroundColor: "#2D3039", color: "#fff", padding: 14, borderRadius: 10, fontSize: 16 },
-  section: { backgroundColor: "#2D3039", padding: 18, borderRadius: 14, marginTop: 32, alignItems: "center" },
-  sectionLabel: { color: "#8a8580", fontSize: 11, letterSpacing: 2, textTransform: "uppercase" },
-  tier: { color: "#3FB8AF", fontSize: 22, fontWeight: "600", letterSpacing: 4, marginTop: 8 },
-  points: { color: "#fff", fontSize: 14, marginTop: 4 },
-  logout: { padding: 16, alignItems: "center", marginTop: 32, marginBottom: 16 },
-  logoutTxt: { color: "#FF6B4A", fontSize: 14 },
+  wrap: { flex: 1, backgroundColor: colors.surface },
+  content: { paddingBottom: 100 },
+
+  header: {
+    backgroundColor: colors.graphite,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 48,
+    paddingBottom: spacing.lg,
+  },
+  brand: { color: colors.textOnDark, fontSize: 22, fontWeight: "300", fontFamily: fonts.heading },
+
+  body: { padding: spacing.xl },
+
+  phoneCard: {
+    backgroundColor: colors.surfaceMuted,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    marginBottom: spacing.xl,
+  },
+  phone: { color: colors.textPrimary, fontSize: 18, fontWeight: "600", marginTop: 4 },
+
+  label: { color: colors.textSecondary, fontSize: 11, letterSpacing: 1.5, fontWeight: "600", textTransform: "uppercase", marginBottom: spacing.sm, marginTop: spacing.sm },
+  input: {
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  cta: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radii.md, alignItems: "center", marginTop: spacing.lg },
+  ctaTxt: { color: colors.textOnDark, fontSize: 14, fontWeight: "700" },
+
+  tierCard: {
+    backgroundColor: colors.surfaceMuted,
+    padding: spacing.xl,
+    borderRadius: radii.lg,
+    alignItems: "center",
+    marginTop: spacing.xxl,
+  },
+  tierLabel: { color: colors.textSecondary, fontSize: 11, letterSpacing: 1.5, fontWeight: "600", textTransform: "uppercase" },
+  tier: { color: colors.primary, fontSize: 22, fontWeight: "700", letterSpacing: 4, marginTop: spacing.sm },
+  points: { color: colors.textPrimary, fontSize: 14, marginTop: 4 },
+
+  logout: { padding: spacing.lg, alignItems: "center", marginTop: spacing.xl },
+  logoutTxt: { color: colors.danger, fontSize: 13 },
 });
