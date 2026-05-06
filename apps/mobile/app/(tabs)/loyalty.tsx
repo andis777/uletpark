@@ -143,8 +143,8 @@ const s = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.surface },
   content: { paddingBottom: 100 },
 
-  header: { backgroundColor: colors.graphite, paddingHorizontal: spacing.xl, paddingTop: 48, paddingBottom: spacing.lg },
-  brand: { color: colors.textOnDark, fontSize: 22, fontWeight: "300", fontFamily: fonts.heading },
+  header: { backgroundColor: colors.surface, paddingHorizontal: spacing.xl, paddingTop: 48, paddingBottom: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  brand: { color: colors.textPrimary, fontSize: 22, fontWeight: "300", fontFamily: fonts.heading },
 
   body: { padding: spacing.xl },
 

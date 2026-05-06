@@ -17,26 +17,34 @@ function AuthGate() {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
 
+  // Перепроверяем токен при каждой смене роута — чтобы logout сразу подхватился
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const ok = await isAuthed();
-        setAuthed(ok);
+        if (!cancelled) setAuthed(ok);
       } catch (e) {
         console.warn("[AuthGate] isAuthed failed:", e);
-        setAuthed(false);
+        if (!cancelled) setAuthed(false);
       }
-      setReady(true);
-      initAnalytics();
+      if (!cancelled && !ready) {
+        setReady(true);
+        initAnalytics();
+      }
     })();
-  }, []);
+    return () => { cancelled = true; };
+  }, [segments]);
 
   useEffect(() => {
     if (!ready) return;
     const inAuthGroup = segments[0] === "(auth)";
+    console.log(`[AuthGate] ready=${ready} authed=${authed} group=${segments[0]}`);
     if (!authed && !inAuthGroup) {
+      console.log("[AuthGate] → /(auth)/login");
       router.replace("/(auth)/login");
     } else if (authed && inAuthGroup) {
+      console.log("[AuthGate] → /(tabs)");
       router.replace("/(tabs)");
       registerForPushNotificationsAsync().catch(() => {});
     }

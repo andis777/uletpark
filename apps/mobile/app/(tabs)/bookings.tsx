@@ -20,17 +20,39 @@ export default function Bookings() {
 
   // Sync с amoCRM (один раз при mount + при pull-to-refresh)
   const sync = useMutation({
-    mutationFn: syncMyBookings,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["bookings"] }),
+    mutationFn: async () => {
+      console.log("[bookings] sync started — fetching from amoCRM");
+      const r = await syncMyBookings();
+      console.log(`[bookings] sync OK — linked=${r.linkedBookings}, phone=${r.phone}`);
+      return r;
+    },
+    onSuccess: (r) => {
+      console.log("[bookings] sync invalidates query → refetch list");
+      qc.invalidateQueries({ queryKey: ["bookings"] });
+    },
+    onError: (e: Error) => {
+      console.warn("[bookings] sync failed:", e.message);
+    },
   });
 
   useEffect(() => {
-    // При первом открытии — подтянуть свежие лиды amoCRM в нашу БД
+    console.log("[bookings] screen mounted — auto-sync");
     sync.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Логи при появлении/обновлении данных списка
+  useEffect(() => {
+    if (data) {
+      console.log(`[bookings] list updated: ${data.bookings.length} items`);
+      data.bookings.slice(0, 5).forEach((b, i) => {
+        console.log(`  ${i + 1}. ${b.airport} ${b.dateFrom.slice(0,10)} → ${b.dateTo.slice(0,10)} | ${b.priceRub}₽ | ${b.status} | car=${b.carNumber ?? "—"} | source=${b.source}`);
+      });
+    }
+  }, [data]);
+
   const onRefresh = async () => {
+    console.log("[bookings] pull-to-refresh");
     await sync.mutateAsync().catch(() => {});
     await refetch();
   };
@@ -66,12 +88,12 @@ export default function Bookings() {
         {isSyncing && (
           <View style={s.syncRow}>
             <ActivityIndicator color={colors.primary} size="small" />
-            <Text style={s.syncTxt}>Загрузка из amoCRM...</Text>
+            <Text style={s.syncTxt}>Загрузка</Text>
           </View>
         )}
         {sync.data && !isSyncing && sync.data.linkedBookings > 0 && (
           <View style={s.syncRowOk}>
-            <Text style={s.syncTxtOk}>✓ Подгружено {sync.data.linkedBookings} {pluralBookings(sync.data.linkedBookings)} из amoCRM</Text>
+            <Text style={s.syncTxtOk}>✓ Подгружено {sync.data.linkedBookings} {pluralBookings(sync.data.linkedBookings)}</Text>
           </View>
         )}
 
@@ -165,17 +187,19 @@ const s = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.surface },
 
   header: {
-    backgroundColor: colors.graphite,
+    backgroundColor: colors.surface,
     paddingHorizontal: spacing.xl,
     paddingTop: 48,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.lg,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
   },
   brand: { color: colors.primary, fontSize: 11, letterSpacing: 3, fontWeight: "700", marginBottom: 6 },
-  title: { color: colors.textOnDark, fontSize: 26, fontWeight: "300", fontFamily: typography.displaySm.fontFamily },
-  titleUnit: { fontSize: 14, opacity: 0.85, fontWeight: "400" },
+  title: { color: colors.textPrimary, fontSize: 26, fontWeight: "300", fontFamily: typography.displaySm.fontFamily },
+  titleUnit: { fontSize: 14, opacity: 0.7, fontWeight: "400", color: colors.textMuted },
 
   addBtn: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radii.pill },
   addBtnTxt: { color: colors.textOnDark, fontSize: 12, fontWeight: "700", letterSpacing: 0.3 },

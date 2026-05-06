@@ -32,9 +32,17 @@ export default function Profile() {
   });
 
   async function logout() {
+    console.log("[profile] logout pressed");
     const ok = await confirmAction("Выйти из аккаунта?", "");
+    console.log("[profile] confirm =", ok);
     if (!ok) return;
-    await clearTokens();
+    try {
+      await clearTokens();
+      console.log("[profile] tokens cleared");
+    } catch (e) {
+      console.warn("[profile] clearTokens failed", e);
+    }
+    qc.clear();
     router.replace("/(auth)/login");
   }
 
@@ -81,7 +89,7 @@ export default function Profile() {
           <Text style={s.points}>{data.user.loyaltyPoints} баллов</Text>
         </View>
 
-        <TouchableOpacity style={s.logout} onPress={logout}>
+        <TouchableOpacity style={s.logout} onPress={logout} activeOpacity={0.8}>
           <Text style={s.logoutTxt}>Выйти из аккаунта</Text>
         </TouchableOpacity>
       </View>
@@ -94,12 +102,14 @@ const s = StyleSheet.create({
   content: { paddingBottom: 100 },
 
   header: {
-    backgroundColor: colors.graphite,
+    backgroundColor: colors.surface,
     paddingHorizontal: spacing.xl,
     paddingTop: 48,
     paddingBottom: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
   },
-  brand: { color: colors.textOnDark, fontSize: 22, fontWeight: "300", fontFamily: fonts.heading },
+  brand: { color: colors.textPrimary, fontSize: 22, fontWeight: "300", fontFamily: fonts.heading },
 
   body: { padding: spacing.xl },
 
@@ -136,6 +146,17 @@ const s = StyleSheet.create({
   tier: { color: colors.primary, fontSize: 22, fontWeight: "700", letterSpacing: 4, marginTop: spacing.sm },
   points: { color: colors.textPrimary, fontSize: 14, marginTop: 4 },
 
-  logout: { padding: spacing.lg, alignItems: "center", marginTop: spacing.xl },
-  logoutTxt: { color: colors.danger, fontSize: 13 },
+  logout: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.xxl,
+    backgroundColor: "#FFF1F1",
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    minHeight: 56,
+  },
+  logoutTxt: { color: colors.danger, fontSize: 16, fontWeight: "700", letterSpacing: 0.3 },
 });

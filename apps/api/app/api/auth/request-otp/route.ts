@@ -14,11 +14,14 @@ export async function POST(req: Request) {
   const phone = normalizePhone(body.data.phone);
   if (!phone) return NextResponse.json({ error: "Invalid phone format" }, { status: 400 });
 
-  // Rate limits: 3 OTP / 10 min на phone, 10 OTP / 10 min на IP
+  // Rate limits: в STUB-режиме мягкие, в проде строгие
+  const isStub = process.env.SMS_PROVIDER === "stub" || !process.env.SMSRU_API_ID;
+  const maxPerPhone = isStub ? 50 : 3;
+  const maxPerIp = isStub ? 200 : 10;
   const ip = getClientIp(req);
-  const phoneLimit = await checkRateLimit(`otp:phone:${phone}`, 3, 10 * 60_000);
+  const phoneLimit = await checkRateLimit(`otp:phone:${phone}`, maxPerPhone, 10 * 60_000);
   if (!phoneLimit.ok) return NextResponse.json({ error: "TOO_MANY_REQUESTS" }, { status: 429 });
-  const ipLimit = await checkRateLimit(`otp:ip:${ip}`, 10, 10 * 60_000);
+  const ipLimit = await checkRateLimit(`otp:ip:${ip}`, maxPerIp, 10 * 60_000);
   if (!ipLimit.ok) return NextResponse.json({ error: "TOO_MANY_REQUESTS" }, { status: 429 });
 
   const code = generateOtp();
