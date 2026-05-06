@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       .values({
         phone,
         amocrmContactId: contact.id,
-        firstName: contact.name?.split(" ")[0] ?? null,
+        firstName: contact.name?.trim().split(" ")[0] || null,   // пустое → null (UI покажет "Гость")
         referralCode: `UP${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
       })
       .returning();

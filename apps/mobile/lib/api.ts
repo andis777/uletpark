@@ -78,6 +78,12 @@ export const createBooking = (b: CreateBookingRequest) =>
 export const cancelBooking = (id: string) =>
   call<{ ok: true; status: string }>(`/api/bookings/${id}/cancel`, { method: "POST" });
 
+/* --- Sync броней из amoCRM по своему телефону --- */
+export const syncMyBookings = () =>
+  call<{ ok: true; linkedBookings: number; phone: string }>(
+    "/api/bookings/sync-mine", { method: "POST" }
+  );
+
 /* --- Calculator (preview без бронирования) --- */
 export type CalcRequestExtended = CalculatorRequest & {
   service?: "parking" | "nochevka";

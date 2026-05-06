@@ -1,19 +1,11 @@
 import { Tabs } from "expo-router";
-import { colors } from "@/lib/theme";
+import { CustomTabBar } from "@/components/TabBar";
 
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.divider,
-          borderTopWidth: 1,
-        },
-        headerShown: false,
-      }}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" options={{ title: "Главная" }} />
       <Tabs.Screen name="bookings" options={{ title: "Брони" }} />

@@ -4,7 +4,12 @@ import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getMe, getLoyalty, listBookings } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
-import { colors, fonts, radii, spacing } from "@/lib/theme";
+import { colors, typography, radii, spacing } from "@/lib/theme";
+import { Card } from "@/components/Card";
+import { Pill } from "@/components/Pill";
+import { SectionHeader } from "@/components/SectionHeader";
+
+const TAB_BAR_GAP = 100;
 
 export default function Dashboard() {
   useEffect(() => { analytics.screenView("dashboard"); }, []);
@@ -21,176 +26,152 @@ export default function Dashboard() {
     );
   }
 
-  const firstName = me?.user.firstName || "клиент";
+  const firstName = me?.user.firstName?.trim() || "Гость";
+  const tier = loyalty?.tier ?? me?.user.loyaltyTier ?? "bronze";
+  const points = loyalty?.points ?? me?.user.loyaltyPoints ?? 0;
   const upcoming = bookings?.bookings.filter(b =>
     b.status === "new" || b.status === "confirmed" || b.status === "active"
   ) ?? [];
 
   return (
-    <ScrollView style={s.wrap} contentContainerStyle={s.content}>
-      {/* Header — графитовая шапка */}
+    <ScrollView style={s.wrap} contentContainerStyle={{ paddingBottom: TAB_BAR_GAP }}>
       <View style={s.header}>
         <View>
-          <Text style={s.brand}>✈ Улётная парковка</Text>
+          <Text style={s.brand}>✈ УЛЁТНАЯ ПАРКОВКА</Text>
           <Text style={s.welcome}>Привет, {firstName}!</Text>
         </View>
         <TouchableOpacity onPress={() => router.push("/(tabs)/profile")} style={s.avatar}>
-          <Text style={s.avatarTxt}>{firstName[0]?.toUpperCase() ?? "?"}</Text>
+          <Text style={s.avatarTxt}>{firstName[0]?.toUpperCase() ?? "Г"}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Карточка лояльности */}
-      <View style={s.loyCard}>
-        <View>
-          <Text style={s.loyLabel}>{(loyalty?.tier ?? me?.user.loyaltyTier ?? "bronze").toUpperCase()}</Text>
+      <View style={s.heroWrap}>
+        <View style={s.loyCard}>
+          <View style={s.loyTopRow}>
+            <Pill label={tier} tone="muted" />
+            <TouchableOpacity onPress={() => router.push("/(tabs)/loyalty")}>
+              <Text style={s.loyLink}>Подробнее →</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={s.loyPoints}>
-            {(loyalty?.points ?? me?.user.loyaltyPoints ?? 0).toLocaleString("ru")}
-            <Text style={s.loyPointsUnit}> баллов</Text>
+            {points.toLocaleString("ru")}
+            <Text style={s.loyPointsUnit}>  баллов</Text>
           </Text>
+          <Text style={s.loyHint}>1 балл = 1 ₽ при следующей брони</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push("/(tabs)/loyalty")}>
-          <Text style={s.loyLink}>Подробнее →</Text>
-        </TouchableOpacity>
       </View>
 
-      {/* Два больших CTA — Парковка и Ночёвка */}
-      <Text style={s.sectionTitle}>Что бронируем?</Text>
+      <View style={s.section}>
+        <SectionHeader title="Что бронируем?" />
 
-      <TouchableOpacity style={s.serviceCard} onPress={() => router.push("/booking/parking")} activeOpacity={0.85}>
-        <View style={s.serviceIcoBox}>
-          <Text style={s.serviceIco}>🅿️</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.serviceTitle}>Парковка у Шереметьево</Text>
-          <Text style={s.serviceLede}>От 150 ₽/сутки · бесплатный трансфер 24/7</Text>
-        </View>
-        <Text style={s.serviceArrow}>›</Text>
-      </TouchableOpacity>
+        <Card variant="elevated" onPress={() => router.push("/booking/parking")} padding="lg" style={s.serviceCard}>
+          <View style={s.serviceIcoBox}>
+            <Text style={s.serviceIco}>🅿️</Text>
+          </View>
+          <View style={s.serviceTextBox}>
+            <Text style={s.serviceTitle}>Парковка у Шереметьево</Text>
+            <Text style={s.serviceLede}>От 150 ₽/сут · трансфер 24/7</Text>
+          </View>
+          <View style={s.serviceArrow}>
+            <Text style={s.arrowTxt}>›</Text>
+          </View>
+        </Card>
 
-      <TouchableOpacity style={s.serviceCard} onPress={() => router.push("/booking/nochevka")} activeOpacity={0.85}>
-        <View style={[s.serviceIcoBox, { backgroundColor: colors.surfacePaper }]}>
-          <Text style={s.serviceIco}>🛏️</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.serviceTitle}>Улётная ночёвка</Text>
-          <Text style={s.serviceLede}>6 ч — 500 ₽ · 12 ч — 800 ₽ · сутки — 1200 ₽</Text>
-        </View>
-        <Text style={s.serviceArrow}>›</Text>
-      </TouchableOpacity>
+        <Card variant="elevated" onPress={() => router.push("/booking/nochevka")} padding="lg" style={s.serviceCard}>
+          <View style={[s.serviceIcoBox, { backgroundColor: colors.surfacePaper }]}>
+            <Text style={s.serviceIco}>🛏️</Text>
+          </View>
+          <View style={s.serviceTextBox}>
+            <Text style={s.serviceTitle}>Улётная ночёвка</Text>
+            <Text style={s.serviceLede}>6 ч · 12 ч · сутки</Text>
+          </View>
+          <View style={s.serviceArrow}>
+            <Text style={s.arrowTxt}>›</Text>
+          </View>
+        </Card>
+      </View>
 
-      {/* Активные брони (если есть) */}
       {upcoming.length > 0 && (
-        <>
-          <Text style={s.sectionTitle}>Активные брони</Text>
+        <View style={s.section}>
+          <SectionHeader
+            title="Активные брони"
+            action={{ label: "Все", onPress: () => router.push("/(tabs)/bookings") }}
+          />
           {upcoming.slice(0, 3).map(b => (
-            <TouchableOpacity key={b.id} style={s.bookCard} onPress={() => router.push(`/booking/${b.id}`)}>
+            <Card
+              key={b.id}
+              variant="muted"
+              onPress={() => router.push(`/booking/${b.id}`)}
+              padding="md"
+              style={{ marginBottom: spacing.sm }}
+            >
               <View style={s.bookHead}>
                 <Text style={s.bookAirport}>{b.airport}</Text>
-                <Text style={s.bookPrice}>{b.priceRub.toLocaleString("ru")} ₽</Text>
+                <Pill label={statusLabel(b.status)} tone={statusTone(b.status)} />
               </View>
               <Text style={s.bookDates}>
                 {new Date(b.dateFrom).toLocaleDateString("ru")} → {new Date(b.dateTo).toLocaleDateString("ru")}
               </Text>
               {b.carNumber && <Text style={s.bookCar}>{b.carNumber}</Text>}
-            </TouchableOpacity>
+              <Text style={s.bookPrice}>{b.priceRub.toLocaleString("ru")} ₽</Text>
+            </Card>
           ))}
-          <TouchableOpacity onPress={() => router.push("/(tabs)/bookings")} style={s.allBtn}>
-            <Text style={s.allBtnTxt}>Все брони →</Text>
-          </TouchableOpacity>
-        </>
+        </View>
       )}
-
-      <View style={s.footerSpace} />
     </ScrollView>
   );
+}
+
+function statusLabel(s: string) {
+  return ({ new: "Новая", confirmed: "Подтверждена", active: "Активна", completed: "Завершена", cancelled: "Отменена" } as const)[s as "new"] ?? s;
+}
+function statusTone(s: string): "primary" | "success" | "muted" | "warning" {
+  if (s === "completed") return "success";
+  if (s === "cancelled") return "muted";
+  if (s === "active") return "warning";
+  return "primary";
 }
 
 const s = StyleSheet.create({
   loadingWrap: { flex: 1, backgroundColor: colors.surface, justifyContent: "center", alignItems: "center" },
   wrap: { flex: 1, backgroundColor: colors.surface },
-  content: { paddingBottom: 100 },
 
   header: {
     backgroundColor: colors.graphite,
     paddingHorizontal: spacing.xl,
     paddingTop: 48,
-    paddingBottom: spacing.xl,
+    paddingBottom: 56,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
   },
   brand: { color: colors.primary, fontSize: 11, letterSpacing: 3, fontWeight: "700", marginBottom: 6 },
-  welcome: { color: colors.textOnDark, fontSize: 24, fontWeight: "300", fontFamily: fonts.heading },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: colors.primary,
-    justifyContent: "center", alignItems: "center",
-  },
+  welcome: { color: colors.textOnDark, fontSize: 26, fontWeight: "300", fontFamily: typography.displaySm.fontFamily },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, justifyContent: "center", alignItems: "center" },
   avatarTxt: { color: colors.textOnDark, fontSize: 18, fontWeight: "700" },
 
-  loyCard: {
-    backgroundColor: colors.primary,
-    margin: spacing.xl,
-    marginTop: -spacing.lg,
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  loyLabel: { color: colors.graphite, fontSize: 10, letterSpacing: 3, fontWeight: "800", marginBottom: 4 },
-  loyPoints: { color: colors.textOnDark, fontSize: 28, fontWeight: "300", fontFamily: fonts.heading },
-  loyPointsUnit: { fontSize: 13, opacity: 0.85 },
-  loyLink: { color: colors.textOnDark, fontSize: 12, fontWeight: "600" },
+  heroWrap: { paddingHorizontal: spacing.xl, marginTop: -36 },
+  loyCard: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radii.xl },
+  loyTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md },
+  loyLink: { color: colors.textOnDark, fontSize: 12, fontWeight: "700", opacity: 0.95 },
+  loyPoints: { color: colors.textOnDark, fontSize: 36, fontWeight: "300", fontFamily: typography.displaySm.fontFamily },
+  loyPointsUnit: { fontSize: 14, opacity: 0.85, fontWeight: "400" },
+  loyHint: { color: colors.textOnDark, opacity: 0.85, fontSize: 12, marginTop: 4 },
 
-  sectionTitle: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    marginHorizontal: spacing.xl,
-    marginTop: spacing.xl,
-    marginBottom: spacing.md,
-  },
+  section: { paddingHorizontal: spacing.xl },
 
-  serviceCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
-  serviceIcoBox: {
-    width: 56, height: 56, borderRadius: radii.md,
-    backgroundColor: colors.surfaceMuted,
-    justifyContent: "center", alignItems: "center",
-    marginRight: spacing.md,
-  },
+  serviceCard: { flexDirection: "row", alignItems: "center", marginBottom: spacing.md, gap: spacing.md },
+  serviceIcoBox: { width: 56, height: 56, borderRadius: radii.md, backgroundColor: colors.surfaceMuted, justifyContent: "center", alignItems: "center" },
   serviceIco: { fontSize: 28 },
-  serviceTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: "600", marginBottom: 4, fontFamily: fonts.heading },
-  serviceLede: { color: colors.textMuted, fontSize: 12, lineHeight: 16 },
-  serviceArrow: { color: colors.primary, fontSize: 28, marginLeft: spacing.sm, fontWeight: "300" },
+  serviceTextBox: { flex: 1 },
+  serviceTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: "600", marginBottom: 2, fontFamily: typography.h3.fontFamily },
+  serviceLede: { color: colors.textMuted, fontSize: 12 },
+  serviceArrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primarySoft, justifyContent: "center", alignItems: "center" },
+  arrowTxt: { color: colors.primary, fontSize: 18, fontWeight: "700", lineHeight: 20 },
 
-  bookCard: {
-    backgroundColor: colors.surfaceMuted,
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radii.md,
-  },
-  bookHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  bookHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
   bookAirport: { color: colors.primary, fontSize: 14, fontWeight: "700", letterSpacing: 1 },
-  bookPrice: { color: colors.textPrimary, fontSize: 16, fontWeight: "500" },
-  bookDates: { color: colors.textPrimary, fontSize: 13 },
-  bookCar: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
-
-  allBtn: { padding: spacing.md, alignItems: "center" },
-  allBtnTxt: { color: colors.primary, fontSize: 13, fontWeight: "600" },
-
-  footerSpace: { height: spacing.xxxl },
+  bookDates: { color: colors.textPrimary, fontSize: 14, marginBottom: 2 },
+  bookCar: { color: colors.textMuted, fontSize: 11, marginBottom: 6 },
+  bookPrice: { color: colors.textPrimary, fontSize: 18, fontWeight: "600", fontFamily: typography.displaySm.fontFamily },
 });

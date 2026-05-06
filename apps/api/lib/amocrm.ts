@@ -247,7 +247,7 @@ function stubLead(id: number): AmoCrmLead {
 function stubContact(id: number): AmoCrmContact {
   return {
     id,
-    name: "Stub Client",
+    name: "",                                        // в stub имя пустое → UI покажет "Гость"
     created_at: Math.floor(Date.now() / 1000) - 86400 * 30,
     updated_at: Math.floor(Date.now() / 1000),
     custom_fields_values: [
