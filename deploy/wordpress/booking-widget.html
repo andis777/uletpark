@@ -1,0 +1,310 @@
+<!--
+  ============================================================
+  Улётная Парковка — виджет калькулятора-брони
+  ============================================================
+  ВСТАВИТЬ в WordPress: новая страница → блок "Custom HTML" → этот код
+  Или в Elementor: блок "HTML"
+  Или в виджет области: WP Admin → Widgets → Custom HTML
+
+  Что делает:
+   1) Калькулятор стоимости в реальном времени (запрос к /api/calc)
+   2) Форма брони → /api/leads
+       → создаёт сделку в amoCRM
+       → шлёт в Telegram-группу через бот
+       → шлёт email менеджеру
+   3) Адаптивный, минимум CSS (≈ 5 KB)
+   4) Не требует jQuery
+
+  API: https://api.uletnayaparkovka.ru
+  ============================================================
+-->
+
+<style>
+.up-booking-widget * { box-sizing: border-box; font-family: inherit; }
+.up-booking-widget {
+  max-width: 480px; margin: 24px auto;
+  background: linear-gradient(135deg, #fff 0%, #fafbfc 100%);
+  border-radius: 20px; padding: 28px;
+  box-shadow: 0 12px 40px rgba(15,77,71,0.12);
+  position: relative; border: 1px solid #e5e7eb;
+}
+.up-booking-widget .badge {
+  position: absolute; top: -14px; right: 24px;
+  background: #3FB8AF; color: #fff;
+  padding: 6px 14px; border-radius: 100px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+}
+.up-booking-widget h3 {
+  margin: 0 0 6px; font-size: 22px; color: #0f1419; font-weight: 700;
+}
+.up-booking-widget .sub { font-size: 13px; color: #8a8f9f; margin-bottom: 20px; }
+.up-booking-widget .tabs {
+  display: flex; gap: 4px; background: #f4f5f7;
+  padding: 4px; border-radius: 12px; margin-bottom: 16px;
+}
+.up-booking-widget .tab {
+  flex: 1; padding: 10px; border: none; background: transparent;
+  border-radius: 8px; font-size: 13px; font-weight: 700;
+  color: #4b5161; cursor: pointer; transition: all .15s;
+}
+.up-booking-widget .tab.active { background: #3FB8AF; color: #fff; }
+.up-booking-widget label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: #4b5161; margin-bottom: 6px;
+}
+.up-booking-widget input,
+.up-booking-widget select {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid #e5e7eb; border-radius: 10px;
+  font-size: 15px; color: #1a1d24; background: #fff;
+  margin-bottom: 12px; outline: none; transition: border-color .15s;
+}
+.up-booking-widget input:focus, .up-booking-widget select:focus { border-color: #3FB8AF; }
+.up-booking-widget .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.up-booking-widget .price-box {
+  background: linear-gradient(135deg, rgba(63,184,175,0.10), rgba(63,184,175,0.04));
+  border: 1px solid rgba(63,184,175,0.25);
+  border-radius: 12px; padding: 16px; margin: 4px 0 16px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.up-booking-widget .price-box .label { font-size: 11px; color: #4b5161; font-weight: 700; letter-spacing: .5px; }
+.up-booking-widget .price-box .hint { font-size: 11px; color: #8a8f9f; margin-top: 2px; }
+.up-booking-widget .price-box .price { font-size: 26px; font-weight: 300; color: #0f4d47; }
+.up-booking-widget button.submit {
+  width: 100%; padding: 16px; border: none; border-radius: 12px;
+  background: #3FB8AF; color: #fff; font-size: 15px; font-weight: 700;
+  letter-spacing: .3px; cursor: pointer; transition: all .2s;
+  box-shadow: 0 4px 16px rgba(63,184,175,0.3);
+}
+.up-booking-widget button.submit:hover:not(:disabled) {
+  background: #2a8a83; transform: translateY(-1px);
+}
+.up-booking-widget button.submit:disabled { opacity: 0.55; cursor: not-allowed; }
+.up-booking-widget .agreement {
+  margin-top: 12px; font-size: 11px; color: #8a8f9f;
+  line-height: 1.5; text-align: center;
+}
+.up-booking-widget .agreement a { color: #3FB8AF; text-decoration: underline; }
+.up-booking-widget .success {
+  background: #ecf8f1; color: #1a6e4e;
+  padding: 24px; border-radius: 12px; text-align: center;
+}
+.up-booking-widget .success .check { font-size: 48px; margin-bottom: 12px; }
+.up-booking-widget .success h4 { margin: 0 0 8px; color: #0f4d47; font-size: 19px; }
+.up-booking-widget .error {
+  background: #fef2f2; color: #991b1b;
+  padding: 12px; border-radius: 10px; font-size: 13px;
+  margin-bottom: 12px;
+}
+@media (max-width: 520px) {
+  .up-booking-widget { margin: 16px 8px; padding: 20px; }
+  .up-booking-widget .row { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="up-booking-widget" id="up-booking-widget">
+  <span class="badge">БРОНЬ ЗА 30 СЕКУНД</span>
+  <h3>Забронировать парковку</h3>
+  <div class="sub">Перезвоним в течение 5 минут · Бесплатно</div>
+
+  <div class="tabs">
+    <button type="button" class="tab active" data-service="parking">🅿️ Парковка</button>
+    <button type="button" class="tab" data-service="nochevka">🛏️ Ночёвка</button>
+  </div>
+
+  <form id="up-booking-form" autocomplete="on">
+    <label for="up-name">Имя</label>
+    <input id="up-name" type="text" name="name" required placeholder="Как к вам обращаться" autocomplete="name">
+
+    <label for="up-phone">Телефон</label>
+    <input id="up-phone" type="tel" name="phone" required placeholder="+7 (___) ___-__-__" autocomplete="tel" inputmode="tel">
+
+    <div class="row">
+      <div>
+        <label for="up-from">Заезд</label>
+        <input id="up-from" type="date" name="dateFrom" required>
+      </div>
+      <div>
+        <label for="up-to">Выезд</label>
+        <input id="up-to" type="date" name="dateTo" required>
+      </div>
+    </div>
+
+    <div class="price-box">
+      <div>
+        <div class="label">ИТОГО</div>
+        <div class="hint" id="up-hint">Выберите даты</div>
+      </div>
+      <div class="price" id="up-price">— ₽</div>
+    </div>
+
+    <button type="submit" class="submit" id="up-submit">Забронировать →</button>
+
+    <div class="agreement">
+      Нажимая «Забронировать», вы соглашаетесь с
+      <a href="/oferta" target="_blank">офертой</a> и
+      <a href="/privacy" target="_blank">обработкой данных</a>
+    </div>
+  </form>
+
+  <div class="success" id="up-success" style="display:none">
+    <div class="check">✅</div>
+    <h4>Заявка принята!</h4>
+    <p style="margin:0">Менеджер перезвонит в течение 5 минут.<br>Или позвоните сами: <a href="tel:+79099148881" style="color:#0f4d47;font-weight:700">+7 (909) 914-88-81</a></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var API = "https://api.uletnayaparkovka.ru";
+  var $ = function (id) { return document.getElementById(id); };
+
+  var service = "parking";
+  var fromInput = $("up-from"), toInput = $("up-to");
+  var hint = $("up-hint"), priceEl = $("up-price");
+  var form = $("up-booking-form"), btn = $("up-submit");
+  var success = $("up-success"), widget = $("up-booking-widget");
+
+  // Дефолтные даты — завтра + 5 дней
+  var today = new Date();
+  fromInput.value = new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
+  toInput.value = new Date(today.getTime() + 5 * 86400000).toISOString().slice(0, 10);
+  fromInput.min = today.toISOString().slice(0, 10);
+  toInput.min = fromInput.value;
+
+  // Tabs
+  document.querySelectorAll(".up-booking-widget .tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".up-booking-widget .tab").forEach(function (t) { t.classList.remove("active"); });
+      tab.classList.add("active");
+      service = tab.dataset.service;
+      calc();
+    });
+  });
+
+  // Phone mask (упрощённый)
+  $("up-phone").addEventListener("input", function (e) {
+    var d = e.target.value.replace(/\D/g, "");
+    if (!d) return;
+    if (d.length === 11 && d[0] === "8") d = "7" + d.slice(1);
+    if (d.length > 11) d = d.slice(0, 11);
+    var f = "+7 ";
+    if (d.length > 1) f += "(" + d.slice(1, 4);
+    if (d.length > 4) f += ") " + d.slice(4, 7);
+    if (d.length > 7) f += "-" + d.slice(7, 9);
+    if (d.length > 9) f += "-" + d.slice(9, 11);
+    e.target.value = f;
+  });
+
+  // Live calc — debounced
+  var calcT;
+  function calc() {
+    clearTimeout(calcT);
+    calcT = setTimeout(function () {
+      var from = fromInput.value, to = toInput.value;
+      if (!from || !to || new Date(from) >= new Date(to)) {
+        priceEl.textContent = "— ₽";
+        hint.textContent = "Выберите даты";
+        return;
+      }
+      toInput.min = from;
+      hint.textContent = "Считаем...";
+      fetch(API + "/api/calc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          airport: "SVO",
+          dateFrom: from + "T12:00:00Z",
+          dateTo: to + "T12:00:00Z",
+          service: service,
+        }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var price = d.finalRub || d.totalRub;
+          if (price) {
+            priceEl.textContent = price.toLocaleString("ru") + " ₽";
+            var days = Math.ceil((new Date(to) - new Date(from)) / 86400000);
+            hint.textContent = days + " " + (days === 1 ? "сутки" : days < 5 ? "суток" : "суток") + " · трансфер включён";
+          } else {
+            priceEl.textContent = "—";
+            hint.textContent = "Не удалось рассчитать";
+          }
+        })
+        .catch(function () {
+          priceEl.textContent = "—";
+          hint.textContent = "Ошибка расчёта — позвоните";
+        });
+    }, 300);
+  }
+  fromInput.addEventListener("change", calc);
+  toInput.addEventListener("change", calc);
+  calc(); // первый расчёт сразу
+
+  // UTM collection
+  function getUtm() {
+    var u = {};
+    var p = new URLSearchParams(window.location.search);
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) u[k.replace("utm_", "")] = v;
+    });
+    return Object.keys(u).length ? u : undefined;
+  }
+
+  // Submit
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var existing = widget.querySelector(".error");
+    if (existing) existing.remove();
+    btn.disabled = true;
+    var oldText = btn.textContent;
+    btn.textContent = "Отправляем...";
+
+    var payload = {
+      name: $("up-name").value.trim(),
+      phone: $("up-phone").value.trim(),
+      service: service,
+      dateFrom: fromInput.value,
+      dateTo: toInput.value,
+      source: "wp-landing",
+      utm: getUtm(),
+    };
+
+    fetch(API + "/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d, status: r.status }; }); })
+      .then(function (res) {
+        if (res.ok) {
+          // GA/Yandex события для отслеживания конверсии
+          try {
+            if (window.gtag) window.gtag("event", "lead_submitted", { value: 1 });
+            if (window.ym && window.YM_ID) window.ym(window.YM_ID, "reachGoal", "lead_submitted");
+          } catch (e) {}
+          form.style.display = "none";
+          success.style.display = "block";
+          widget.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          var err = document.createElement("div");
+          err.className = "error";
+          err.textContent = "Не удалось отправить (" + (res.data.error || res.status) + "). Позвоните +7 (909) 914-88-81";
+          form.insertBefore(err, btn);
+          btn.disabled = false;
+          btn.textContent = oldText;
+        }
+      })
+      .catch(function () {
+        var err = document.createElement("div");
+        err.className = "error";
+        err.textContent = "Нет связи с сервером. Позвоните +7 (909) 914-88-81";
+        form.insertBefore(err, btn);
+        btn.disabled = false;
+        btn.textContent = oldText;
+      });
+  });
+})();
+</script>
