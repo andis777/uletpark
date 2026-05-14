@@ -1,55 +1,52 @@
 # =========================================================================
-# CI/CD: push в main → SSH в /opt/uletnaya → git pull → docker compose build/up
-# Билд идёт прямо на сервере (для слабого VPS экономит диск + нет registry)
+# CI/CD: push в main → self-hosted runner на 194.87.222.67
+#         → запускает /usr/local/bin/uletnaya-deploy.sh
+#         → git pull → docker compose build/up → healthcheck
+#
+# Self-hosted runner ставится скриптом: deploy/scripts/setup-self-hosted-runner.sh
+# Билд использует Docker слоистый кэш — в 5× быстрее чем чистый ubuntu-latest.
 # =========================================================================
 name: Deploy API
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "apps/mobile/**"
+      - ".github/workflows/build-mobile*.yml"
   workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: true
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, uletnaya]
+    timeout-minutes: 15
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          script: |
-            set -e
-            cd /opt/uletnaya
+      - name: Where am I
+        run: |
+          echo "host:    $(hostname)"
+          echo "user:    $(whoami)"
+          echo "docker:  $(docker --version 2>&1)"
+          echo "disk:    $(df -h /opt | tail -1)"
 
-            echo "→ Pull from git"
-            git fetch --all
-            git reset --hard origin/main
+      - name: Run deploy script
+        run: sudo /usr/local/bin/uletnaya-deploy.sh
 
-            echo "→ Rebuild api image"
-            docker compose -f docker-compose.fastpanel.yml --env-file .env.production build api
-
-            echo "→ Restart api"
-            docker compose -f docker-compose.fastpanel.yml --env-file .env.production up -d api
-
-            echo "→ Cleanup старых образов"
-            docker image prune -f
-
-            echo "→ Healthcheck"
-            sleep 8
-            for i in 1 2 3 4 5; do
-              if curl -fsS http://127.0.0.1:7982/api/health; then
-                echo "✓ Healthy on attempt $i"
-                exit 0
-              fi
-              echo "  retry $i..."
-              sleep 5
-            done
-            echo "✗ Healthcheck failed after 5 attempts"
-            docker compose -f docker-compose.fastpanel.yml logs api --tail 30
-            exit 1
+      - name: Smoke test public API
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 http://api.uletnayaparkovka.ru/api/health || echo 000)
+            echo "attempt $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 4
+          done
+          echo "public API health failed"
+          exit 1
 
   notify:
     runs-on: ubuntu-latest
