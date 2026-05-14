@@ -18,3 +18,7 @@ jobs:
           lftp -e "set ssl:verify-certificate no; set ftp:passive-mode true; pwd; ls -la; cd uletnayaparkovka.ru 2>/dev/null && pwd && ls -la; cd ..; quit" -u "$U,$P" "$H"
           echo "--- second pass ---"
           lftp -e "set ssl:verify-certificate no; cd uletnayaparkovka.ru/public_html && ls -la; quit" -u "$U,$P" "$H"
+          echo "--- /www ---"
+          lftp -e "set ssl:verify-certificate no; cd www && ls -la; quit" -u "$U,$P" "$H"
+          echo "--- /www/uletnayaparkovka.ru ---"
+          lftp -e "set ssl:verify-certificate no; cd www/uletnayaparkovka.ru && ls -la 2>&1 | head -30; quit" -u "$U,$P" "$H"
