@@ -1,0 +1,98 @@
+# =========================================================================
+# Deploy static landing to uletnayaparkovka.ru (Beget shared hosting)
+# Скачивает рендеренный HTML с api.uletnayaparkovka.ru, переписывает пути
+# ассетов и заливает через FTP на основной домен.
+# =========================================================================
+name: Deploy WWW
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/app/_marketing/**"
+      - "apps/api/app/page.tsx"
+      - "apps/api/app/globals.css"
+      - "apps/api/app/layout.tsx"
+      - ".github/workflows/deploy-www.yml"
+
+jobs:
+  deploy-www:
+    runs-on: ubuntu-latest
+    # Зависимость от деплоя API чтобы свежий рендер ушёл на основной домен
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for API deploy to finish
+        run: |
+          # API uses path filters, so it might be deploying in parallel — wait 60s.
+          sleep 60
+
+      - name: Fetch rendered HTML from api subdomain
+        run: |
+          set -e
+          mkdir -p www
+          curl -s --max-time 30 -H "User-Agent: Mozilla/5.0 (compatible; uletpark-deploy)" \
+            "https://api.uletnayaparkovka.ru/" > www/raw.html || \
+          curl -s --max-time 30 -H "User-Agent: Mozilla/5.0 (compatible; uletpark-deploy)" \
+            "http://api.uletnayaparkovka.ru/" > www/raw.html
+          SIZE=$(wc -c < www/raw.html)
+          echo "Fetched: $SIZE bytes"
+          if [ "$SIZE" -lt 50000 ]; then
+            echo "Suspiciously small response. Aborting."
+            head -200 www/raw.html
+            exit 1
+          fi
+
+      - name: Rewrite asset paths + inject fetch shim
+        run: |
+          node -e "
+          const fs = require('fs');
+          let s = fs.readFileSync('www/raw.html', 'utf8');
+          // Переписываем все /_next/ на абсолютный URL
+          s = s.replaceAll('\"/_next/', '\"https://api.uletnayaparkovka.ru/_next/');
+          // Переписываем формы и absolute links на /api/
+          s = s.replaceAll('action=\"/api/', 'action=\"https://api.uletnayaparkovka.ru/api/');
+          // Шим для fetch — перехватывает /api/* и редиректит на api.uletnayaparkovka.ru
+          const shim = '<script>(function(){var A=\"https://api.uletnayaparkovka.ru\";var o=window.fetch;window.fetch=function(i,n){if(typeof i===\"string\"&&i.indexOf(\"/api/\")===0)i=A+i;else if(i&&typeof i.url===\"string\"&&i.url.indexOf(\"/api/\")===0)i=new Request(A+i.url,i);return o.call(this,i,n);};})();</script>';
+          s = s.replace('<head>', '<head>' + shim);
+          fs.writeFileSync('www/index.html', s);
+          console.log('Final size:', s.length);
+          console.log('Has shim:', s.includes('window.fetch=function'));
+          console.log('Rewrites:', (s.match(/https:\/\/api\.uletnayaparkovka\.ru\/_next\//g) || []).length);
+          "
+
+      - name: Health check generated HTML
+        run: |
+          # Минимальные проверки качества
+          if ! grep -q "Улётная Парковка" www/index.html; then
+            echo "❌ Brand name missing"; exit 1;
+          fi
+          if ! grep -q "ParkingFacility" www/index.html; then
+            echo "❌ Schema.org missing"; exit 1;
+          fi
+          if ! grep -q "booking-form" www/index.html; then
+            echo "❌ Booking form missing"; exit 1;
+          fi
+          echo "✓ HTML quality checks passed"
+          ls -la www/
+
+      - name: Upload to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.WWW_FTP_HOST }}
+          username: ${{ secrets.WWW_FTP_USER }}
+          password: ${{ secrets.WWW_FTP_PASS }}
+          local-dir: ./www/
+          server-dir: ${{ secrets.WWW_FTP_DIR }}
+          exclude: |
+            **/raw.html
+            **/.git*
+            **/node_modules/**
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "https://uletnayaparkovka.ru/" || echo "000")
+          echo "uletnayaparkovka.ru → HTTP $STATUS"
+          curl -s --max-time 15 "https://uletnayaparkovka.ru/" | grep -oE "(Улётная Парковка|booking-form|window.fetch=function)" | sort -u | head -5 || echo "couldn't grep"
