@@ -42,19 +42,34 @@ export function BookingForm() {
     e.preventDefault();
     if (!name || !phone) return;
     setSubmitting(true);
+
+    // Собираем UTM-метки из URL для трекинга источника
+    const utm: Record<string, string> = {};
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach(k => {
+        const v = params.get(k);
+        if (v) utm[k.replace("utm_", "")] = v;
+      });
+    }
+
     try {
-      await fetch("/api/events", {
+      const r = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventName: "lead_form_submitted",
-          sessionId: "web-" + Date.now(),
-          source: "web",
-          properties: { name, phone, dateFrom, dateTo, service, price },
-          deviceInfo: { os: "web", appVersion: "1.0.0", deviceModel: "browser" },
+          name, phone, service, dateFrom, dateTo,
+          source: "web-landing",
+          utm: Object.keys(utm).length ? utm : undefined,
         }),
       });
-      setSubmitted(true);
+      const data = await r.json();
+      console.log("[lead]", data);
+      if (r.ok) setSubmitted(true);
+      else alert(`Не удалось отправить: ${data.error ?? r.status}. Позвоните +7 (909) 914-88-81`);
+    } catch (e) {
+      console.warn("[lead] network error", e);
+      alert("Ошибка сети. Позвоните +7 (909) 914-88-81");
     } finally {
       setSubmitting(false);
     }
