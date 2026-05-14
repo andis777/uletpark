@@ -1,0 +1,29 @@
+name: Debug FTP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List FTP directories
+        run: |
+          set +e
+          sudo apt-get install -y -qq lftp
+          export LFTP_PASSWORD="${{ secrets.WWW_FTP_PASS }}"
+          lftp -u "${{ secrets.WWW_FTP_USER }}",--env-password "${{ secrets.WWW_FTP_HOST }}" <<'EOF'
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          pwd
+          ls -la
+          echo "--- /uletnayaparkovka.ru ---"
+          ls -la uletnayaparkovka.ru/ 2>&1
+          echo "--- /uletnayaparkovka.ru/public_html ---"
+          ls -la uletnayaparkovka.ru/public_html/ 2>&1
+          echo "--- /public_html ---"
+          ls -la public_html/ 2>&1
+          echo "--- /www ---"
+          ls -la www/ 2>&1
+          quit
+          EOF
