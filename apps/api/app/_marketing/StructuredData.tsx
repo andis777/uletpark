@@ -1,4 +1,4 @@
-import { faqData } from "./FAQ";
+import { faqData } from "./faq-data";
 
 export function StructuredData() {
   const localBusiness = {
