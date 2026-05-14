@@ -3,32 +3,68 @@
     "name": "Улётная парковка",
     "slug": "uletnaya-parkovka",
     "scheme": "uletnaya",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
+      "image": "./assets/splash.png",
       "backgroundColor": "#1F2430",
       "resizeMode": "contain"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "ru.uletnayaparkovka.app",
-      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
+      "buildNumber": "9",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "api.uletnayaparkovka.ru": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true,
+              "NSExceptionMinimumTLSVersion": "TLSv1.2"
+            }
+          }
+        }
+      }
     },
     "android": {
       "package": "ru.uletnayaparkovka.app",
-      "adaptiveIcon": { "backgroundColor": "#1F2430" }
+      "versionCode": 9,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1F2430"
+      }
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
-    "experiments": { "typedRoutes": true },
+    "experiments": {
+      "typedRoutes": true
+    },
     "extra": {
-      "apiUrl": "http://api.uletnayaparkovka.ru"
-    }
+      "apiUrl": "http://api.uletnayaparkovka.ru",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "6efb0108-5626-49b8-8ace-f852d3b292ad"
+      }
+    },
+    "owner": "djbuba"
   }
 }

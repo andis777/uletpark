@@ -4,3 +4,9 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Apple / Google secrets — never commit
+AuthKey_*.p8
+play-store-credentials.json
+*.mobileprovision
+*.p12

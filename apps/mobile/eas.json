@@ -16,17 +16,33 @@
     "production": {
       "channel": "production",
       "autoIncrement": true,
+      "ios": {
+        "image": "latest"
+      },
+      "android": {
+        "image": "latest"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.uletnayaparkovka.ru"
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "android": {
+        "image": "latest",
+        "buildType": "apk"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "appleid@example.com",
-        "ascAppId": "REPLACE_WITH_ASC_APP_ID",
-        "appleTeamId": "REPLACE_WITH_TEAM_ID"
+        "appleId": "ariswebru@gmail.com",
+        "appleTeamId": "DL35T44Q97",
+        "ascAppId": "6767523063",
+        "ascApiKeyPath": "./AuthKey_P2AVPA23A5.p8",
+        "ascApiKeyId": "P2AVPA23A5",
+        "ascApiKeyIssuerId": "abe9b631-ff19-4c29-82a6-995286613901"
       },
       "android": {
         "serviceAccountKeyPath": "./play-store-credentials.json",

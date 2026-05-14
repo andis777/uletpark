@@ -36,18 +36,38 @@ class ApiError extends Error {
 }
 
 async function call<T>(path: string, init?: RequestInit & { auth?: boolean }): Promise<T> {
+  const method = init?.method || "GET";
   const headers: Record<string, string> = { "Content-Type": "application/json", ...(init?.headers as Record<string, string>) };
   if (init?.auth !== false) {
     const tok = await getAccessToken();
     if (tok) headers.Authorization = `Bearer ${tok}`;
   }
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
+
+  const t0 = Date.now();
+  console.log(`[api] → ${method} ${path}${init?.body ? ` body=${typeof init.body === "string" ? init.body.slice(0, 200) : "[binary]"}` : ""}`);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...init, headers });
+  } catch (e) {
+    console.error(`[api] ✗ network ${method} ${path} (${Date.now() - t0}ms):`, e);
+    throw e;
+  }
+
+  const ms = Date.now() - t0;
+
   if (!res.ok) {
     let payload: { error?: string; message?: string } = {};
     try { payload = await res.json(); } catch { /* ignore */ }
+    console.warn(`[api] ✗ ${method} ${path} → ${res.status} ${payload.error ?? ""} (${ms}ms)`);
     throw new ApiError(res.status, payload.error ?? "ERROR", payload.message);
   }
-  return res.json() as Promise<T>;
+
+  const data = await res.json() as T;
+  // Сжатый превью данных (длинные ответы — обрезаем)
+  const preview = JSON.stringify(data).slice(0, 200);
+  console.log(`[api] ✓ ${method} ${path} → ${res.status} (${ms}ms) ${preview}${preview.length === 200 ? "..." : ""}`);
+  return data;
 }
 
 /* --- Auth --- */
@@ -65,6 +85,8 @@ export const verifyOtp = (body: VerifyOtpBody) =>
 export const getMe = () => call<{ user: UserProfile }>("/api/me");
 export const updateMe = (patch: Partial<Pick<UserProfile, "firstName" | "lastName" | "email">> & { pushToken?: string }) =>
   call<{ user: UserProfile }>("/api/me", { method: "PATCH", body: JSON.stringify(patch) });
+export const deleteMe = () =>
+  call<{ ok: true; deletedAt: string }>("/api/me", { method: "DELETE" });
 
 /* --- Bookings --- */
 export const listBookings = () => call<{ bookings: BookingDTO[] }>("/api/bookings");

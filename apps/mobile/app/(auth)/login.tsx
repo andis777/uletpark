@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from "react-native";
 import { router } from "expo-router";
 import { requestOtp, verifyOtp, setTokens } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
+
+const PRIVACY_URL = "https://uletnayaparkovka.ru/politika-konfidencialnosti";
+const OFFER_URL = "https://uletnayaparkovka.ru/politika-konfidencialnosti#oferta";
+const RULES_URL = "https://uletnayaparkovka.ru/politika-konfidencialnosti#rules";
 
 export default function Login() {
   const [step, setStep] = useState<"phone" | "code">("phone");
@@ -125,9 +129,32 @@ export default function Login() {
           </>
         )}
 
-        <Text style={s.legal}>
-          Нажимая, вы соглашаетесь с офертой и политикой обработки персональных данных
-        </Text>
+        <View style={s.legalBlock}>
+          <Text style={s.legal}>
+            Нажимая «{step === "phone" ? "Получить код" : "Войти"}», вы соглашаетесь с условиями использования сервиса.
+          </Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(OFFER_URL)}
+            accessibilityRole="link"
+            hitSlop={8}
+          >
+            <Text style={s.legalLink}>Пользовательское соглашение (оферта)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(PRIVACY_URL)}
+            accessibilityRole="link"
+            hitSlop={8}
+          >
+            <Text style={s.legalLink}>Политика обработки персональных данных</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(RULES_URL)}
+            accessibilityRole="link"
+            hitSlop={8}
+          >
+            <Text style={s.legalLink}>Правила пользования сервисом</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -184,6 +211,8 @@ const s = StyleSheet.create({
   btnTxt: { color: colors.textOnDark, fontSize: 16, fontWeight: "700", letterSpacing: 0.3 },
 
   alt: { color: colors.textSecondary, textAlign: "center", marginTop: spacing.sm, fontSize: 13 },
-  legal: { color: colors.textMuted, fontSize: 11, textAlign: "center", marginTop: "auto", paddingBottom: spacing.xl, lineHeight: 16 },
+  legalBlock: { marginTop: "auto", paddingBottom: spacing.xl, alignItems: "center" },
+  legal: { color: colors.textMuted, fontSize: 12, textAlign: "center", lineHeight: 17, marginBottom: spacing.sm },
+  legalLink: { color: colors.primary, fontSize: 12, textAlign: "center", textDecorationLine: "underline", paddingVertical: 4, lineHeight: 18 },
   debug: { color: colors.textMuted, fontSize: 11, marginBottom: spacing.sm, fontFamily: "monospace" },
 });

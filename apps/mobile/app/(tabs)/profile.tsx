@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ScrollView, Text, View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { clearTokens, getMe, updateMe } from "@/lib/api";
+import { clearTokens, deleteMe, getMe, updateMe } from "@/lib/api";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { confirmAction, notify } from "@/lib/ui";
 
@@ -44,6 +44,34 @@ export default function Profile() {
     }
     qc.clear();
     router.replace("/(auth)/login");
+  }
+
+  const deleteAcc = useMutation({
+    mutationFn: deleteMe,
+    onSuccess: async () => {
+      console.log("[profile] account deleted on server");
+      await clearTokens();
+      qc.clear();
+      notify("Аккаунт удалён", "Все ваши данные удалены с сервера.");
+      router.replace("/(auth)/login");
+    },
+    onError: (e: Error) => notify("Не удалось удалить аккаунт", e.message),
+  });
+
+  async function handleDeleteAccount() {
+    console.log("[profile] delete account pressed");
+    // Двойное подтверждение — App Store требует защиту от случайного удаления
+    const first = await confirmAction(
+      "Удалить аккаунт?",
+      "Это действие удалит все ваши данные: профиль, историю броней, бонусные баллы. Отменить нельзя.",
+    );
+    if (!first) return;
+    const second = await confirmAction(
+      "Точно удалить?",
+      "После подтверждения восстановить аккаунт будет невозможно. Бонусные баллы сгорят.",
+    );
+    if (!second) return;
+    deleteAcc.mutate();
   }
 
   if (isLoading || !data) {
@@ -92,6 +120,24 @@ export default function Profile() {
         <TouchableOpacity style={s.logout} onPress={logout} activeOpacity={0.8}>
           <Text style={s.logoutTxt}>Выйти из аккаунта</Text>
         </TouchableOpacity>
+
+        {/* Удаление аккаунта — обязательно по требованию App Store 5.1.1(v) */}
+        <View style={s.deleteBox}>
+          <Text style={s.deleteTitle}>Удаление аккаунта</Text>
+          <Text style={s.deleteHint}>
+            При удалении аккаунта будут безвозвратно стёрты: профиль, история броней, накопленные баллы и реферальный код. Активные брони будут отменены. Восстановление невозможно.
+          </Text>
+          <TouchableOpacity
+            style={s.deleteBtn}
+            onPress={handleDeleteAccount}
+            activeOpacity={0.8}
+            disabled={deleteAcc.isPending}
+          >
+            <Text style={s.deleteBtnTxt}>
+              {deleteAcc.isPending ? "Удаляем..." : "Удалить аккаунт навсегда"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -159,4 +205,39 @@ const s = StyleSheet.create({
     minHeight: 56,
   },
   logoutTxt: { color: colors.danger, fontSize: 16, fontWeight: "700", letterSpacing: 0.3 },
+
+  deleteBox: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  deleteTitle: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: spacing.sm,
+  },
+  deleteHint: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: spacing.md,
+  },
+  deleteBtn: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.danger,
+    minHeight: 44,
+  },
+  deleteBtnTxt: { color: colors.danger, fontSize: 13, fontWeight: "700", letterSpacing: 0.3 },
 });
