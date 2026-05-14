@@ -1,0 +1,87 @@
+# =========================================================================
+# Откат — возвращает WordPress на uletnayaparkovka.ru
+# Удаляет наш index.html, восстанавливает оригинальную .htaccess (WP-style),
+# чистит мусорные папки которые мы случайно создали.
+# =========================================================================
+name: Rollback WWW
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    env:
+      U: ${{ secrets.WWW_FTP_USER }}
+      P: ${{ secrets.WWW_FTP_PASS }}
+      H: ${{ secrets.WWW_FTP_HOST }}
+    steps:
+      - name: Install lftp
+        run: sudo apt-get install -y -qq lftp
+
+      - name: Restore WordPress .htaccess
+        run: |
+          cat > /tmp/htaccess <<'HTACCESS'
+          RewriteEngine On
+          # BEGIN WordPress
+          # Директивы (строки) между `BEGIN WordPress` и `END WordPress`
+          # созданы автоматически и подлежат изменению только через фильтры WordPress.
+          # Сделанные вручную изменения между этими маркерами будут перезаписаны.
+          <IfModule mod_rewrite.c>
+          RewriteEngine On
+          RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+          RewriteBase /
+          RewriteRule ^index\.php$ - [L]
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteRule . /index.php [L]
+          </IfModule>
+          # END WordPress
+          HTACCESS
+
+          lftp -c "
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          open -u $U,$P $H
+          cd /www/uletnayaparkovka.ru
+          ls -la | head -20
+          echo '--- Removing our index.html ---'
+          rm index.html 2>&1 || echo 'no index.html to remove'
+          rm .ftp-deploy-sync-state.json 2>&1 || echo 'no sync state'
+          echo '--- Restoring WordPress .htaccess ---'
+          put /tmp/htaccess -o .htaccess
+          ls -la | head -10
+          quit
+          "
+
+      - name: Remove our fake folder /uletnayaparkovka.ru/public_html
+        continue-on-error: true
+        run: |
+          lftp -c "
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          open -u $U,$P $H
+          cd /uletnayaparkovka.ru/public_html
+          ls -la
+          rm index.html 2>&1 || true
+          rm index.html.bak-* 2>&1 || true
+          rm .htaccess 2>&1 || true
+          rm .ftp-deploy-sync-state.json 2>&1 || true
+          cd ..
+          rmdir public_html 2>&1 || true
+          cd ..
+          rmdir uletnayaparkovka.ru 2>&1 || true
+          quit
+          "
+
+      - name: Verify WordPress is back
+        run: |
+          sleep 5
+          echo "=== Headers ==="
+          curl -sI --max-time 15 "https://uletnayaparkovka.ru/" | head -10
+          echo ""
+          echo "=== Body markers ==="
+          curl -sL --max-time 15 "https://uletnayaparkovka.ru/" | grep -oE "(Улётная Парковка|booking-form|window.fetch|wp-json|xmlrpc|WordPress|yandex-verification)" | sort -u
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "https://uletnayaparkovka.ru/")
+          echo "HTTP $STATUS"
+          [ "$STATUS" = "200" ] || exit 1
