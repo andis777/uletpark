@@ -24,6 +24,7 @@ export interface LeadPayload {
   dateTo: string;
   price?: number | null;
   carNumber?: string;
+  nochevkaHours?: 6 | 12 | 24;
   source?: string; // "web-landing" | "mobile-app" | etc
   utm?: Record<string, string>;
   notes?: string;
@@ -67,7 +68,8 @@ function buildTelegramMessage(l: LeadPayload): string {
   const days = Math.max(1, Math.ceil(
     (new Date(l.dateTo).getTime() - new Date(l.dateFrom).getTime()) / 86400000,
   ));
-  const service = l.service === "parking" ? "🅿️ Парковка" : "🛏️ Ночёвка";
+  const tariff = l.nochevkaHours ? ` (тариф ${l.nochevkaHours} ч)` : "";
+  const service = l.service === "parking" ? "🅿️ Парковка" : `🛏️ Ночёвка${tariff}`;
   const utm = l.utm && Object.keys(l.utm).length
     ? "\n<b>UTM:</b> <code>" + Object.entries(l.utm).map(([k, v]) => `${k}=${v}`).join(" ") + "</code>"
     : "";

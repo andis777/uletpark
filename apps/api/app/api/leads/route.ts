@@ -82,6 +82,7 @@ export async function POST(req: Request) {
     dateTo: data.dateTo.slice(0, 10),
     price,
     carNumber: data.carNumber,
+    nochevkaHours: data.nochevkaHours,
     notes: data.notes,
     source: data.source ?? "web-landing",
     utm: data.utm,

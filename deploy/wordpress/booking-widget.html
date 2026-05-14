@@ -131,6 +131,15 @@
       </div>
     </div>
 
+    <!-- Тариф ночёвки — показывается только когда выбрана "ночёвка" -->
+    <div id="up-tariff-row" style="display:none">
+      <label>Тариф ночёвки</label>
+      <select id="up-tariff" name="nochevkaHours">
+        <option value="6">6 часов — 500 ₽ + 1200 ₽ за каждые сутки</option>
+        <option value="12">12 часов — 800 ₽ + 1200 ₽ за каждые сутки</option>
+      </select>
+    </div>
+
     <div class="price-box">
       <div>
         <div class="label">ИТОГО</div>
@@ -165,6 +174,7 @@
   var hint = $("up-hint"), priceEl = $("up-price");
   var form = $("up-booking-form"), btn = $("up-submit");
   var success = $("up-success"), widget = $("up-booking-widget");
+  var tariffRow = $("up-tariff-row"), tariffSelect = $("up-tariff");
 
   // Дефолтные даты — завтра + 5 дней
   var today = new Date();
@@ -179,9 +189,13 @@
       document.querySelectorAll(".up-booking-widget .tab").forEach(function (t) { t.classList.remove("active"); });
       tab.classList.add("active");
       service = tab.dataset.service;
+      // Показываем/скрываем выбор тарифа для ночёвки
+      tariffRow.style.display = service === "nochevka" ? "block" : "none";
       calc();
     });
   });
+
+  tariffSelect.addEventListener("change", calc);
 
   // Phone mask (упрощённый)
   $("up-phone").addEventListener("input", function (e) {
@@ -210,23 +224,28 @@
       }
       toInput.min = from;
       hint.textContent = "Считаем...";
+      var payload = {
+        airport: "SVO",
+        dateFrom: from + "T12:00:00Z",
+        dateTo: to + "T12:00:00Z",
+        service: service,
+      };
+      if (service === "nochevka") {
+        payload.nochevkaHours = parseInt(tariffSelect.value, 10);
+      }
       fetch(API + "/api/calc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          airport: "SVO",
-          dateFrom: from + "T12:00:00Z",
-          dateTo: to + "T12:00:00Z",
-          service: service,
-        }),
+        body: JSON.stringify(payload),
       })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           var price = d.finalRub || d.totalRub;
           if (price) {
             priceEl.textContent = price.toLocaleString("ru") + " ₽";
-            var days = Math.ceil((new Date(to) - new Date(from)) / 86400000);
-            hint.textContent = days + " " + (days === 1 ? "сутки" : days < 5 ? "суток" : "суток") + " · трансфер включён";
+            var days = d.days || Math.max(1, Math.ceil((new Date(to) - new Date(from)) / 86400000));
+            var noun = days === 1 ? "сутки" : "суток";
+            hint.textContent = "Всего дней: " + days + " · трансфер включён";
           } else {
             priceEl.textContent = "—";
             hint.textContent = "Не удалось рассчитать";
@@ -271,6 +290,9 @@
       source: "wp-landing",
       utm: getUtm(),
     };
+    if (service === "nochevka") {
+      payload.nochevkaHours = parseInt(tariffSelect.value, 10);
+    }
 
     fetch(API + "/api/leads", {
       method: "POST",
