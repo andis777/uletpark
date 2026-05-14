@@ -7,12 +7,28 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const Body = z.object({ phone: z.string().min(10) });
 
+/**
+ * Демо-номера для App Store / RuStore / Google Play модерации.
+ * SMS не отправляется, в verify-otp код "111111" всегда проходит.
+ * Документировано в App Review Information.
+ */
+const APP_REVIEW_DEMO_PHONES = new Set([
+  "+79991234567",  // Apple App Store Review
+  "+79991110000",  // RuStore moderator
+  "+79991110001",  // Google Play moderator
+]);
+
 export async function POST(req: Request) {
   const body = Body.safeParse(await req.json().catch(() => null));
   if (!body.success) return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
 
   const phone = normalizePhone(body.data.phone);
   if (!phone) return NextResponse.json({ error: "Invalid phone format" }, { status: 400 });
+
+  // App-review demo: SMS не шлём, успешный ответ. Код "111111" принимается в verify-otp.
+  if (APP_REVIEW_DEMO_PHONES.has(phone)) {
+    return NextResponse.json({ ok: true, expiresIn: 300 });
+  }
 
   // Rate limits: в STUB-режиме мягкие, в проде строгие
   const isStub = process.env.SMS_PROVIDER === "stub" || !process.env.SMSRU_API_ID;

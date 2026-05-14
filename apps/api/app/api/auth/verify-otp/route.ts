@@ -8,6 +8,19 @@ import { linkBookingsToUserByPhone } from "@/lib/sync-amocrm";
 
 const Body = z.object({ phone: z.string(), code: z.string().length(6) });
 
+/**
+ * Демо-номера для модерации сторов.
+ * SMS не отправляется (см. request-otp), универсальный код = APP_REVIEW_DEMO_CODE.
+ * При входе создаётся / переиспользуется реальный user в БД.
+ * Документировано в App Review Information.
+ */
+const APP_REVIEW_DEMO_PHONES = new Set([
+  "+79991234567",
+  "+79991110000",
+  "+79991110001",
+]);
+const APP_REVIEW_DEMO_CODE = "111111";
+
 export async function POST(req: Request) {
   const body = Body.safeParse(await req.json().catch(() => null));
   if (!body.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
@@ -15,32 +28,43 @@ export async function POST(req: Request) {
   const phone = normalizePhone(body.data.phone);
   if (!phone) return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
 
-  // Берём свежий неиспользованный код
-  const [otp] = await db
-    .select()
-    .from(otpCodes)
-    .where(and(eq(otpCodes.phone, phone), isNull(otpCodes.consumedAt), gt(otpCodes.expiresAt, new Date())))
-    .orderBy(desc(otpCodes.createdAt))
-    .limit(1);
+  const isDemo = APP_REVIEW_DEMO_PHONES.has(phone);
 
-  if (!otp) return NextResponse.json({ error: "OTP_NOT_FOUND_OR_EXPIRED" }, { status: 401 });
-  if (otp.attempts >= 5) return NextResponse.json({ error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  if (!isDemo) {
+    // Берём свежий неиспользованный код
+    const [otp] = await db
+      .select()
+      .from(otpCodes)
+      .where(and(eq(otpCodes.phone, phone), isNull(otpCodes.consumedAt), gt(otpCodes.expiresAt, new Date())))
+      .orderBy(desc(otpCodes.createdAt))
+      .limit(1);
 
-  const ok = await verifyOtp(body.data.code, otp.codeHash);
-  if (!ok) {
-    await db.update(otpCodes).set({ attempts: otp.attempts + 1 }).where(eq(otpCodes.id, otp.id));
-    return NextResponse.json({ error: "INVALID_CODE" }, { status: 401 });
+    if (!otp) return NextResponse.json({ error: "OTP_NOT_FOUND_OR_EXPIRED" }, { status: 401 });
+    if (otp.attempts >= 5) return NextResponse.json({ error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+
+    const ok = await verifyOtp(body.data.code, otp.codeHash);
+    if (!ok) {
+      await db.update(otpCodes).set({ attempts: otp.attempts + 1 }).where(eq(otpCodes.id, otp.id));
+      return NextResponse.json({ error: "INVALID_CODE" }, { status: 401 });
+    }
+
+    await db.update(otpCodes).set({ consumedAt: new Date() }).where(eq(otpCodes.id, otp.id));
+  } else {
+    // Demo flow: единственный валидный код для тест-номеров
+    if (body.data.code !== APP_REVIEW_DEMO_CODE) {
+      return NextResponse.json({ error: "INVALID_CODE" }, { status: 401 });
+    }
   }
-
-  await db.update(otpCodes).set({ consumedAt: new Date() }).where(eq(otpCodes.id, otp.id));
 
   // Найти или создать пользователя
   let [user] = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
   let isNewUser = false;
   if (!user) {
     isNewUser = true;
-    // amoCRM contact (либо существующий, либо новый)
-    const contact = await findOrCreateContactByPhone(phone);
+    // amoCRM contact (либо существующий, либо новый). Для demo не дергаем amoCRM.
+    const contact = isDemo
+      ? { id: null as number | null, name: "App Review Demo" }
+      : await findOrCreateContactByPhone(phone);
     [user] = await db
       .insert(users)
       .values({
