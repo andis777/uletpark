@@ -8,22 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: List FTP directories
+        env:
+          U: ${{ secrets.WWW_FTP_USER }}
+          P: ${{ secrets.WWW_FTP_PASS }}
+          H: ${{ secrets.WWW_FTP_HOST }}
         run: |
           set +e
           sudo apt-get install -y -qq lftp
-          export LFTP_PASSWORD="${{ secrets.WWW_FTP_PASS }}"
-          lftp -u "${{ secrets.WWW_FTP_USER }}",--env-password "${{ secrets.WWW_FTP_HOST }}" <<'EOF'
-          set ssl:verify-certificate no
-          set ftp:passive-mode true
-          pwd
-          ls -la
-          echo "--- /uletnayaparkovka.ru ---"
-          ls -la uletnayaparkovka.ru/ 2>&1
-          echo "--- /uletnayaparkovka.ru/public_html ---"
-          ls -la uletnayaparkovka.ru/public_html/ 2>&1
-          echo "--- /public_html ---"
-          ls -la public_html/ 2>&1
-          echo "--- /www ---"
-          ls -la www/ 2>&1
-          quit
-          EOF
+          lftp -e "set ssl:verify-certificate no; set ftp:passive-mode true; pwd; ls -la; cd uletnayaparkovka.ru 2>/dev/null && pwd && ls -la; cd ..; quit" -u "$U,$P" "$H"
+          echo "--- second pass ---"
+          lftp -e "set ssl:verify-certificate no; cd uletnayaparkovka.ru/public_html && ls -la; quit" -u "$U,$P" "$H"
