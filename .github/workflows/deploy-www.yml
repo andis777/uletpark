@@ -86,15 +86,18 @@ jobs:
           # === Улётная Парковка — статический лендинг ===
           # WordPress отключён, обслуживается только наш index.html
 
-          # Принудительный HTTPS
+          # Index файл — наш HTML с приоритетом
+          DirectoryIndex index.html index.php
+
+          # Отключаем WordPress rewrite полностью на root
           <IfModule mod_rewrite.c>
             RewriteEngine On
-            RewriteCond %{HTTPS} off
-            RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+            # Если запрос на корень — отдаём index.html напрямую
+            RewriteRule ^$ index.html [L]
+            # Запрещаем доступ к wp-admin для безопасности
+            RewriteRule ^wp-admin - [F,L]
+            RewriteRule ^wp-login\.php - [F,L]
           </IfModule>
-
-          # Index файл — наш HTML
-          DirectoryIndex index.html index.php
 
           # Сжатие
           <IfModule mod_deflate.c>
