@@ -197,7 +197,10 @@
 
   tariffSelect.addEventListener("change", calc);
 
-  // Phone mask (упрощённый)
+  // Phone: дефолт "+7 " на focus + маска при вводе (как в uCalc)
+  $("up-phone").addEventListener("focus", function (e) {
+    if (!e.target.value || e.target.value === "+") e.target.value = "+7 ";
+  });
   $("up-phone").addEventListener("input", function (e) {
     var d = e.target.value.replace(/\D/g, "");
     if (!d) return;
@@ -281,6 +284,31 @@
     var oldText = btn.textContent;
     btn.textContent = "Отправляем...";
 
+    // Источник: страница с которой пришёл клиент (документ-родитель если в iframe)
+    var sourcePage = (function () {
+      try {
+        // Если виджет встроен через iframe — берём родителя
+        if (window.parent && window.parent !== window) {
+          return window.parent.location.href;
+        }
+        // Или hash (uCalc передавал URL через #)
+        var hash = (location.hash || "").substring(1);
+        if (hash) return decodeURIComponent(hash);
+        // Или document title
+        return location.href;
+      } catch (e) {
+        return location.href;
+      }
+    })();
+    var sourceTitle = (function () {
+      try {
+        if (window.parent && window.parent.document.title) {
+          return window.parent.document.title;
+        }
+      } catch (e) {}
+      return document.title;
+    })();
+
     var payload = {
       name: $("up-name").value.trim(),
       phone: $("up-phone").value.trim(),
@@ -289,6 +317,7 @@
       dateTo: toInput.value,
       source: "wp-landing",
       utm: getUtm(),
+      notes: sourceTitle ? "Со страницы: " + sourceTitle + " (" + sourcePage + ")" : undefined,
     };
     if (service === "nochevka") {
       payload.nochevkaHours = parseInt(tariffSelect.value, 10);
