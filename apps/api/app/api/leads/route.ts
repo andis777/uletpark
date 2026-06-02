@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createLead, findOrCreateContactByPhone } from "@/lib/amocrm";
-import { notifyTelegram, notifyEmail, type LeadPayload } from "@/lib/notify";
+import { notifyTelegram, notifyEmail, notifyClient, type LeadPayload } from "@/lib/notify";
 import { calculate } from "@/lib/calculator";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -30,6 +30,7 @@ const Body = z.object({
   notes: z.string().max(500).optional(),
   source: z.string().max(40).optional(),
   utm: z.record(z.string()).optional(),
+  email: z.string().email().max(120).optional(),
 });
 
 function normalizePhone(raw: string): string {
@@ -105,10 +106,11 @@ export async function POST(req: Request) {
     console.warn("[leads] amoCRM failed:", (e as Error).message);
   }
 
-  // 2-3) Telegram + Email — параллельно, ошибки логируем но не падаем
-  const [tg, mail] = await Promise.all([
+  // 2-4) Telegram + Email менеджеру + Email клиенту — параллельно
+  const [tg, mail, clientMail] = await Promise.all([
     notifyTelegram(leadPayload),
     notifyEmail(leadPayload),
+    notifyClient({ ...leadPayload, email: data.email }),
   ]);
 
   return NextResponse.json({
@@ -118,6 +120,7 @@ export async function POST(req: Request) {
       amocrm: amocrmLeadId ? "sent" : "failed",
       telegram: tg.ok ? "sent" : tg.error,
       email: mail.ok ? "sent" : mail.error,
+      clientEmail: clientMail.ok ? "sent" : clientMail.error,
     },
     price,
   });

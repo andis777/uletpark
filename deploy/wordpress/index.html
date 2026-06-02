@@ -120,9 +120,6 @@
     <label for="up-phone">Телефон</label>
     <input id="up-phone" type="tel" name="phone" required placeholder="+7 (___) ___-__-__" autocomplete="tel" inputmode="tel">
 
-    <label for="up-email">Email <span style="text-transform:none;color:#8a8f9f;letter-spacing:0">(чтобы получить подтверждение)</span></label>
-    <input id="up-email" type="email" name="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
-
     <div class="row">
       <div>
         <label for="up-from">Заезд</label>
@@ -312,11 +309,9 @@
       return document.title;
     })();
 
-    var emailVal = $("up-email").value.trim();
     var payload = {
       name: $("up-name").value.trim(),
       phone: $("up-phone").value.trim(),
-      email: emailVal || undefined,
       service: service,
       dateFrom: fromInput.value,
       dateTo: toInput.value,

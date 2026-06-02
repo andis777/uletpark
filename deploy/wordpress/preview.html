@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Превью виджета брони · Улётная Парковка</title>
+<style>
+body { margin:0; background: linear-gradient(135deg,#0f1419,#1a3a35,#0f4d47); min-height:100vh; padding:48px 16px; font-family:-apple-system,Inter,system-ui,sans-serif; color:#fff; }
+.wrap { max-width:1100px; margin:0 auto; }
+.title { text-align:center; margin:0 0 8px; font-weight:300; font-size:36px; letter-spacing:-1px; }
+.subtitle { text-align:center; color:rgba(255,255,255,0.7); margin:0 0 32px; font-size:15px; }
+.cols { display:grid; grid-template-columns:1fr 1.2fr; gap:48px; align-items:start; }
+.info { padding:24px 0; }
+.info h3 { margin:0 0 12px; font-size:20px; color:#3FB8AF; font-weight:700; letter-spacing:0.5px; }
+.info ul { padding:0 0 0 18px; line-height:1.8; color:rgba(255,255,255,0.85); font-size:14px; }
+.info code { background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:12px; }
+@media (max-width:900px) { .cols { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="title">Превью виджета брони</h1>
+  <p class="subtitle">Этот калькулятор встраивается на uletnayaparkovka.ru как Custom HTML блок. Подключён к боевому api.uletnayaparkovka.ru</p>
+
+  <div class="cols">
+    <div class="info">
+      <h3>Что попробовать</h3>
+      <ul>
+        <li><b>Переключи Парковка ↔ Ночёвка</b> — цена пересчитается</li>
+        <li><b>Поменяй даты</b> — расчёт идёт live через <code>POST /api/calc</code></li>
+        <li><b>Введи имя + телефон</b>, нажми «Забронировать»</li>
+        <li>Submit идёт в <code>POST /api/leads</code> → amoCRM (STUB) + Telegram + Email</li>
+        <li>В STUB-режиме сделка создаётся виртуально, но видна в логах сервера</li>
+        <li>Открой DevTools (F12) → Network → увидишь все вызовы</li>
+      </ul>
+
+      <h3 style="margin-top:24px">Тест без формы</h3>
+      <ul>
+        <li>В консоли (F12) можешь напрямую:</li>
+      </ul>
+      <pre style="background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;font-size:11px;overflow-x:auto;color:#3FB8AF">fetch("https://api.uletnayaparkovka.ru/api/leads",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({
+    name:"Тест",
+    phone:"+79991234567",
+    service:"parking",
+    dateFrom:"2026-06-01",
+    dateTo:"2026-06-05",
+    source:"console"
+  })
+}).then(r=>r.json()).then(console.log)</pre>
+
+      <h3 style="margin-top:24px">Что готово</h3>
+      <ul>
+        <li>✅ <code>/api/calc</code> — расчёт цены на сервере</li>
+        <li>✅ <code>/api/leads</code> — приём заявок</li>
+        <li>✅ amoCRM создание (в STUB до получения токенов)</li>
+        <li>🟡 Telegram — нужен <code>TELEGRAM_BOT_TOKEN</code></li>
+        <li>🟡 Email — нужен <code>SMTP_*</code></li>
+        <li>✅ UTM-сбор из URL</li>
+        <li>✅ Rate limit 20/мин на IP</li>
+        <li>✅ CORS открыт для uletnayaparkovka.ru</li>
+      </ul>
+    </div>
+
+    <iframe src="./booking-widget.html" style="border:0;width:100%;height:780px;background:transparent;border-radius:20px"></iframe>
+  </div>
+</div>
+</body>
+</html>

@@ -204,6 +204,26 @@ export const syncRuns = pgTable("sync_runs", {
   triggeredBy: text("triggered_by"),               // admin email или 'cron'
 });
 
+/**
+ * Аудит-лог админских действий.
+ * Кто, когда, что сделал. Для безопасности и расследований.
+ */
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  adminId: uuid("admin_id"),               // null если не залогинен (попытка)
+  adminEmail: text("admin_email"),
+  action: text("action").notNull(),        // 'login', 'logout', 'update_booking', 'adjust_loyalty', ...
+  resource: text("resource"),              // 'booking:123', 'user:abc'
+  payload: jsonb("payload"),               // что изменено / параметры
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  adminIdx: index("audit_admin_idx").on(t.adminId),
+  actionIdx: index("audit_action_idx").on(t.action),
+  createdIdx: index("audit_created_idx").on(t.createdAt),
+}));
+
 /* =========================================================================
  * Relations
  * ======================================================================= */
