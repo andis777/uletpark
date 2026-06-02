@@ -37,13 +37,15 @@ jobs:
             --network uletnaya_uletnaya \
             -v /opt/uletnaya:/app -w /app \
             --env-file /opt/uletnaya/.env.production \
+            -e NODE_ENV=development \
             node:22-alpine sh -c '
               set -e
               export DATABASE_URL="postgres://uletnaya:${POSTGRES_PASSWORD}@postgres:5432/uletnaya"
               corepack enable
               corepack prepare pnpm@9.12.0 --activate
-              # Workspace-aware install с фильтром на пакет db
-              pnpm install --no-frozen-lockfile --filter @uletnaya/db... --silent
+              # Workspace-aware install с фильтром на пакет db.
+              # --prod=false принудительно ставит devDependencies (drizzle-kit живёт там)
+              pnpm install --no-frozen-lockfile --filter @uletnaya/db... --prod=false --silent
               # Используем pnpm с filter из корня — node_modules/.bin виден
               pnpm --filter @uletnaya/db exec drizzle-kit push --force
             '
