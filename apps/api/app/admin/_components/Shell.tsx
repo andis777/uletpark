@@ -3,16 +3,19 @@ import { ReactNode } from "react";
 
 export function Shell({ children, active, adminEmail }: {
   children: ReactNode;
-  active: "dashboard" | "bookings" | "users" | "loyalty" | "analytics" | "sync";
+  active: "dashboard" | "bookings" | "users" | "loyalty" | "analytics" | "sync" | "driver" | "finance" | "audit";
   adminEmail: string;
 }) {
   const items = [
-    { key: "dashboard", href: "/admin", label: "Дашборд" },
-    { key: "bookings",  href: "/admin/bookings", label: "Заказы" },
-    { key: "users",     href: "/admin/users", label: "Клиенты" },
-    { key: "loyalty",   href: "/admin/loyalty", label: "Лояльность" },
-    { key: "analytics", href: "/admin/analytics", label: "Аналитика" },
-    { key: "sync",      href: "/admin/sync",      label: "Sync amoCRM" },
+    { key: "dashboard", href: "/admin",           label: "📊 Дашборд" },
+    { key: "bookings",  href: "/admin/bookings",  label: "📋 Заказы" },
+    { key: "driver",    href: "/admin/driver",    label: "🚐 Диспетчерская" },
+    { key: "users",     href: "/admin/users",     label: "👥 Клиенты" },
+    { key: "loyalty",   href: "/admin/loyalty",   label: "⭐ Лояльность" },
+    { key: "finance",   href: "/admin/finance",   label: "💰 Финансы" },
+    { key: "analytics", href: "/admin/analytics", label: "📈 Аналитика" },
+    { key: "sync",      href: "/admin/sync",      label: "🔄 Sync amoCRM" },
+    { key: "audit",     href: "/admin/audit",     label: "🔍 Аудит-лог" },
   ];
 
   return (
