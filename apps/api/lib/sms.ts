@@ -8,10 +8,23 @@
 
 interface SmsResult { success: boolean; smsId?: string; error?: string; }
 
+/** True если API ID отсутствует, "stub", или похож на placeholder из шаблона .env.example */
+export function isStubSms(apiId: string | undefined): boolean {
+  if (!apiId) return true;
+  if (apiId === "stub") return true;
+  if (process.env.SMS_PROVIDER === "stub") return true;
+  // sms.ru ID — GUID xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 символов)
+  // Если короче 30 — точно не реальный ID
+  if (apiId.length < 30) return true;
+  // Шаблонные значения из .env.example
+  if (/^(ваш|your|change|placeholder|example|todo|fixme)/i.test(apiId)) return true;
+  return false;
+}
+
 export async function sendSms(phone: string, text: string): Promise<SmsResult> {
   const apiId = process.env.SMSRU_API_ID;
 
-  if (!apiId || apiId === "stub") {
+  if (isStubSms(apiId)) {
     console.log(`📱 [SMS STUB] → ${phone}: ${text}`);
     return { success: true, smsId: "stub-" + Date.now() };
   }

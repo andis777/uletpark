@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
+import { isStubSms } from "./sms";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "DEV_SECRET_DO_NOT_USE_IN_PROD_64_chars_xxxxxxxxxxxxxxxxxxxxxxxx"
@@ -47,9 +48,9 @@ export async function getUserFromHeader(authHeader: string | null): Promise<JwtP
 /* --- OTP --- */
 
 export function generateOtp(): string {
-  // В STUB-режиме SMS.ru — фиксированный код для тестирования.
-  // На проде с боевым SMSRU_API_ID будет случайный 6-значный.
-  if (!process.env.SMSRU_API_ID || process.env.SMSRU_API_ID === "stub") {
+  // В STUB-режиме SMS.ru (включая placeholder из .env.example) — фиксированный "111111".
+  // На проде с боевым 36-символьным GUID — случайный 6-значный.
+  if (isStubSms(process.env.SMSRU_API_ID)) {
     return "111111";
   }
   return Math.floor(100000 + Math.random() * 900000).toString();

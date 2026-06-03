@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db, otpCodes } from "@/lib/db";
 import { generateOtp, hashOtp, normalizePhone } from "@/lib/auth";
-import { sendOtp } from "@/lib/sms";
+import { sendOtp, isStubSms } from "@/lib/sms";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const Body = z.object({ phone: z.string().min(10) });
@@ -30,8 +30,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, expiresIn: 300 });
   }
 
-  // Rate limits: в STUB-режиме мягкие, в проде строгие
-  const isStub = process.env.SMS_PROVIDER === "stub" || !process.env.SMSRU_API_ID;
+  // Rate limits: в STUB-режиме (включая placeholder API ID) мягкие, в проде строгие
+  const isStub = isStubSms(process.env.SMSRU_API_ID);
   const maxPerPhone = isStub ? 50 : 3;
   const maxPerIp = isStub ? 200 : 10;
   const ip = getClientIp(req);
@@ -47,7 +47,14 @@ export async function POST(req: Request) {
   await db.insert(otpCodes).values({ phone, codeHash, expiresAt });
 
   const sms = await sendOtp(phone, code);
-  if (!sms.success) return NextResponse.json({ error: "SMS_SEND_FAILED" }, { status: 502 });
+  // В STUB-режиме SMS реально не отправляется — даже если upstream вернул ошибку,
+  // OTP уже в БД, юзер введёт "111111" и зайдёт. Не пробрасываем 502 наружу.
+  if (!sms.success && !isStub) {
+    return NextResponse.json({ error: "SMS_SEND_FAILED" }, { status: 502 });
+  }
+  if (!sms.success && isStub) {
+    console.warn(`[request-otp] STUB режим, sms upstream упал (${sms.error}) — игнорируем, код в БД`);
+  }
 
   const isDev = process.env.NODE_ENV !== "production";
   return NextResponse.json({
