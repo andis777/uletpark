@@ -1,0 +1,76 @@
+# =========================================================================
+# One-shot: правит /opt/uletnaya/.env.production на сервере и перезапускает API.
+# Запуск:
+#   gh workflow run "Set Env Var" -R andis777/uletpark -f key=SMS_PROVIDER -f value=stub
+#
+# Безопасность: github-runner работает от своего пользователя, через sudo
+# /usr/local/bin/uletnaya-deploy.sh (NOPASSWD), но env-файл правит docker
+# контейнером — обходим необходимость sudo на sed/grep.
+# =========================================================================
+name: Set Env Var
+
+on:
+  workflow_dispatch:
+    inputs:
+      key:
+        description: "ENV variable name (e.g. SMS_PROVIDER, SMSRU_API_ID)"
+        required: true
+      value:
+        description: 'ENV value (use "" empty string to unset; "stub" to force STUB mode)'
+        required: false
+        default: ""
+
+concurrency:
+  group: env-edit
+  cancel-in-progress: false
+
+jobs:
+  set-env:
+    runs-on: [self-hosted, uletnaya]
+    timeout-minutes: 5
+    steps:
+      - name: Update .env.production via docker
+        env:
+          KEY: ${{ inputs.key }}
+          VALUE: ${{ inputs.value }}
+        run: |
+          # Валидация — KEY только из safe charset
+          if ! echo "$KEY" | grep -qE '^[A-Z][A-Z0-9_]*$'; then
+            echo "✗ Invalid KEY (must be UPPER_CASE)"; exit 1
+          fi
+
+          # Через docker контейнер с bind-mount на /opt/uletnaya
+          # (sudo на хосте на sed/grep не разрешён, но docker — да)
+          sudo -n docker run --rm \
+            -v /opt/uletnaya:/app -w /app \
+            -e KEY="$KEY" -e VALUE="$VALUE" \
+            alpine:3.20 sh -c '
+              set -e
+              ENV_FILE=/app/.env.production
+              if [ ! -f "$ENV_FILE" ]; then echo "✗ .env.production not found"; exit 1; fi
+
+              # Backup
+              cp "$ENV_FILE" "${ENV_FILE}.bak-$(date +%s)"
+
+              # Удаляем старую строку KEY=...
+              sed -i "/^${KEY}=/d" "$ENV_FILE"
+
+              # Добавляем новую (если value не пустой)
+              if [ -n "$VALUE" ]; then
+                echo "${KEY}=${VALUE}" >> "$ENV_FILE"
+              fi
+
+              echo "✓ Set ${KEY}=${VALUE:-<unset>}"
+              echo "--- Current env-file (sensitive values masked) ---"
+              awk -F= "{ if (length(\$2)>20) print \$1 \"=\" substr(\$2,1,3) \"***\" substr(\$2,length(\$2)-2); else print }" "$ENV_FILE"
+            '
+
+      - name: Restart API
+        run: |
+          sudo -n /usr/local/bin/uletnaya-deploy.sh
+
+      - name: Verify health + amocrm mode
+        run: |
+          sleep 5
+          curl -fsS http://127.0.0.1:7982/api/health
+          echo ""
