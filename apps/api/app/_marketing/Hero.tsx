@@ -39,7 +39,7 @@ export function Hero() {
             </div>
 
             <h1 style={{ color: "white", marginBottom: 20 }}>
-              Парковка у&nbsp;Шереметьево —<br />
+              Парковка Шереметьево —<br />
               <span style={{ color: "var(--primary)", fontWeight: 600 }}>5 минут до&nbsp;терминала</span>
             </h1>
 

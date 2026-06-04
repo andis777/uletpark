@@ -37,7 +37,11 @@ export default function Dashboard() {
     <ScrollView style={s.wrap} contentContainerStyle={{ paddingBottom: TAB_BAR_GAP }}>
       <View style={s.header}>
         <View>
-          <Text style={s.brand}>✈ УЛЁТНАЯ ПАРКОВКА</Text>
+          <Text style={s.brand}>
+            <Text style={{ color: "#3FB8AF" }}>✈ УЛЁТНАЯ </Text>
+            <Text style={{ color: "#c44569" }}>ПИТ-СТОП</Text>
+            <Text style={{ color: "#3FB8AF" }}> ПАРКОВКА</Text>
+          </Text>
           <Text style={s.welcome}>Привет, {firstName}!</Text>
         </View>
         <TouchableOpacity onPress={() => router.push("/(tabs)/profile")} style={s.avatar}>
@@ -69,7 +73,7 @@ export default function Dashboard() {
             <Text style={s.serviceIco}>🅿️</Text>
           </View>
           <View style={s.serviceTextBox}>
-            <Text style={s.serviceTitle}>Парковка у Шереметьево</Text>
+            <Text style={s.serviceTitle}>Парковка Шереметьево</Text>
             <Text style={s.serviceLede}>От 150 ₽/сут · трансфер 24/7</Text>
           </View>
           <View style={s.serviceArrow}>

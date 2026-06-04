@@ -13,7 +13,11 @@ export function Footer() {
                 color: "white", display: "flex", alignItems: "center", justifyContent: "center",
                 fontWeight: 700, fontSize: 20,
               }}>У</div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>Улётная Парковка</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>
+                <span style={{ color: "#3FB8AF" }}>Улётная</span>{" "}
+                <span style={{ color: "#ff6b8a" }}>Пит-стоп</span>{" "}
+                <span style={{ color: "#3FB8AF" }}>парковка</span>
+              </div>
             </div>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginBottom: 16, lineHeight: 1.6 }}>
               Парковка у аэропорта Шереметьево с бесплатным трансфером 24/7.

@@ -6,6 +6,7 @@ import { getUserFromHeader } from "@/lib/auth";
 import { calculate } from "@/lib/calculator";
 import { createLead } from "@/lib/amocrm";
 import { redeemForBooking } from "@/lib/loyalty";
+import { notifyClient, notifyTelegram } from "@/lib/notify";
 import type { BookingDTO } from "@uletnaya/shared";
 
 export async function GET(req: Request) {
@@ -43,6 +44,7 @@ const Body = z.object({
   dateTo: z.string().datetime(),
   carNumber: z.string().min(1).max(15),
   carModel: z.string().optional(),
+  email: z.string().email().optional(),
   notes: z.string().optional(),
   promoCode: z.string().optional(),
   useLoyaltyPoints: z.number().int().nonnegative().optional(),
@@ -102,6 +104,24 @@ export async function POST(req: Request) {
         .where(eq(bookings.id, created.id));
     }
   }
+
+  // Уведомления: Telegram-группе + email клиенту (если указал email).
+  // Параллельно, не блокирует ответ.
+  console.log(`[bookings] created ${created.id} for ${user.phone} · ${calc.finalRub}₽`);
+  const notifyPayload = {
+    name: [user.firstName, user.lastName].filter(Boolean).join(" ") || "Клиент",
+    phone: user.phone,
+    service: (body.data.service ?? "parking") as "parking" | "nochevka",
+    dateFrom: created.dateFrom.toISOString().slice(0, 10),
+    dateTo: created.dateTo.toISOString().slice(0, 10),
+    price: calc.finalRub,
+    carNumber: created.carNumber ?? undefined,
+    source: "mobile-app",
+  };
+  Promise.all([
+    notifyTelegram(notifyPayload),
+    body.data.email ? notifyClient({ ...notifyPayload, email: body.data.email }) : Promise.resolve({ ok: false }),
+  ]).catch(e => console.warn("[bookings] notify failed:", e));
 
   return NextResponse.json({
     booking: {

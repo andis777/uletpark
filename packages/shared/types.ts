@@ -57,6 +57,7 @@ export interface CreateBookingRequest extends CalculatorRequest {
   carNumber: string;
   carModel?: string;
   notes?: string;
+  email?: string; // для отправки подтверждения брони на почту клиента
 }
 
 /* --- Auth --- */

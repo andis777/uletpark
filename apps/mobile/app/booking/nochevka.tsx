@@ -5,6 +5,9 @@ import { useMutation } from "@tanstack/react-query";
 import { createBooking } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
+import { DatePickerField } from "@/components/DatePickerField";
+import { RouteMapModal } from "@/components/RouteMapModal";
+import { BookingSuccessModal } from "@/components/BookingSuccessModal";
 
 const TARIFFS = [
   { hours: 6 as const, price: 500, label: "6 часов", lede: "Поспать или дождаться рейса" },
@@ -26,7 +29,11 @@ export default function NochevkaWizard() {
   const [hours, setHours] = useState<6 | 12 | 24>(6);
   const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setHours(14, 0, 0, 0); d.setDate(d.getDate() + 1); return d; });
   const [carNumber, setCarNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState("");
 
   useEffect(() => { analytics.screenView("booking_nochevka"); }, []);
 
@@ -35,15 +42,17 @@ export default function NochevkaWizard() {
 
   const create = useMutation({
     mutationFn: () => createBooking({
-      airport: "SVO", // ночёвка только у Шереметьево
+      airport: "SVO", // ночёвка — только Шереметьево
       dateFrom: dateFrom.toISOString(),
       dateTo: dateTo.toISOString(),
       carNumber: carNumber.trim().toUpperCase() || "БЕЗ АВТО",
+      email: email.trim() || undefined,
       notes: `Улётная ночёвка · ${tariff.label} · ${tariff.price} ₽`,
     }),
     onSuccess: (r) => {
       analytics.bookingCreated({ airport: "SVO", days: 1, priceRub: tariff.price });
-      router.replace(`/booking/${r.booking.id}`);
+      setCreatedBookingId(r.booking.id);
+      setSuccessOpen(true);
     },
     onError: (e: Error) => setError(e.message),
   });
@@ -99,13 +108,14 @@ export default function NochevkaWizard() {
             <Text style={s.title}>Когда заселяемся?</Text>
             <Text style={s.lede}>Заезд с 14:00. Выезд — через {hours} часов.</Text>
 
-            <Text style={s.label}>Дата заезда</Text>
-            <TextInput
-              style={s.input}
-              value={formatDateInput(dateFrom)}
-              onChangeText={(v) => setDateFrom(parseDateInput(v))}
-              placeholder="ГГГГ-ММ-ДД"
-              {...({ type: "date" } as any)}
+            <DatePickerField
+              label="Дата заезда"
+              value={dateFrom}
+              minimumDate={new Date()}
+              onChange={(d) => {
+                d.setHours(14, 0, 0, 0);
+                setDateFrom(d);
+              }}
             />
 
             <Text style={s.label}>Гос.номер машины (необязательно — если приедете на машине)</Text>
@@ -117,6 +127,18 @@ export default function NochevkaWizard() {
               placeholderTextColor={colors.textMuted}
               autoCapitalize="characters"
               maxLength={15}
+            />
+
+            <Text style={s.label}>Email для подтверждения (необязательно)</Text>
+            <TextInput
+              style={s.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
             />
 
             <View style={s.timeBox}>
@@ -160,6 +182,9 @@ export default function NochevkaWizard() {
       </ScrollView>
 
       <View style={s.footer}>
+        <TouchableOpacity onPress={() => setMapOpen(true)} style={s.mapFooterBtn}>
+          <Text style={s.mapFooterTxt}>📍 Схема проезда</Text>
+        </TouchableOpacity>
         {step < 2 ? (
           <TouchableOpacity style={s.cta} onPress={() => setStep(step + 1)}>
             <Text style={s.ctaTxt}>Дальше · {STEPS[step + 1]}</Text>
@@ -176,6 +201,22 @@ export default function NochevkaWizard() {
           </TouchableOpacity>
         )}
       </View>
+
+      <BookingSuccessModal
+        visible={successOpen}
+        name={carNumber.toUpperCase() || "клиент"}
+        dateFrom={dateFrom}
+        priceRub={tariff.price}
+        bookingId={createdBookingId}
+        service="nochevka"
+        onClose={() => {
+          setSuccessOpen(false);
+          router.replace(`/booking/${createdBookingId}`);
+        }}
+        onShowMap={() => setMapOpen(true)}
+      />
+
+      <RouteMapModal visible={mapOpen} onClose={() => setMapOpen(false)} />
     </View>
   );
 }
@@ -237,4 +278,6 @@ const s = StyleSheet.create({
   cta: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radii.md, alignItems: "center", minHeight: 52, justifyContent: "center" },
   ctaDisabled: { opacity: 0.5 },
   ctaTxt: { color: colors.textOnDark, fontSize: 15, fontWeight: "700" },
+  mapFooterBtn: { paddingVertical: spacing.sm, marginBottom: spacing.sm, alignItems: "center" },
+  mapFooterTxt: { color: colors.primary, fontSize: 13, fontWeight: "600" },
 });

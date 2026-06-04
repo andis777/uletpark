@@ -63,7 +63,11 @@ export default function Login() {
   return (
     <View style={s.wrap}>
       <View style={s.header}>
-        <Text style={s.brand}>✈ Улётная парковка</Text>
+        <Text style={s.brand}>
+          <Text style={{ color: "#3FB8AF" }}>✈ Улётная </Text>
+          <Text style={{ color: "#ff6b8a" }}>Пит-стоп</Text>
+          <Text style={{ color: "#3FB8AF" }}> парковка</Text>
+        </Text>
       </View>
 
       <View style={s.body}>

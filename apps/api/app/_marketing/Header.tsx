@@ -18,7 +18,11 @@ export function Header() {
             fontWeight: 700, fontSize: 18, boxShadow: "var(--shadow-md)",
           }}>У</div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: "var(--graphite)", lineHeight: 1 }}>Улётная Парковка</div>
+            <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1 }}>
+              <span style={{ color: "#1a6e4e" }}>Улётная</span>{" "}
+              <span style={{ color: "#c44569" }}>Пит-стоп</span>{" "}
+              <span style={{ color: "#1a6e4e" }}>парковка</span>
+            </div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>Шереметьево · 10 лет</div>
           </div>
         </a>

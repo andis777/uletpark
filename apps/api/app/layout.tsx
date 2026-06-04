@@ -7,15 +7,15 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", 
 const manrope = Manrope({ subsets: ["latin", "cyrillic"], variable: "--font-manrope", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Улётная Парковка у Шереметьево — от 150 ₽/сут, трансфер 24/7",
-  description: "Парковка у аэропорта Шереметьево с бесплатным трансфером 24/7. Договор хранения, 10 лет работаем. Бронь через мобильное приложение или сайт за 30 секунд.",
+  title: "Парковка Шереметьево — Улётная Пит-стоп парковка · от 150 ₽/сут, трансфер 24/7",
+  description: "Парковка Шереметьево с бесплатным трансфером 24/7. Договор хранения, 10 лет работаем. Бронь через мобильное приложение или сайт за 30 секунд.",
   metadataBase: new URL("https://uletnayaparkovka.ru"),
   openGraph: {
-    title: "Улётная Парковка у Шереметьево",
+    title: "Парковка Шереметьево — Улётная Пит-стоп парковка",
     description: "Парковка от 150 ₽/сут. Трансфер 24/7. Договор хранения. 10 лет работаем.",
     type: "website",
     locale: "ru_RU",
-    siteName: "Улётная Парковка",
+    siteName: "Улётная Пит-стоп парковка",
   },
   alternates: { canonical: "/" },
 };

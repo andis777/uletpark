@@ -5,6 +5,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { previewCalc, createBooking, getLoyalty } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
+import { DatePickerField } from "@/components/DatePickerField";
+import { RouteMapModal } from "@/components/RouteMapModal";
+import { BookingSuccessModal } from "@/components/BookingSuccessModal";
 
 const AIRPORT = "SVO" as const;
 const AIRPORT_NAME = "Шереметьево";
@@ -31,8 +34,14 @@ export default function ParkingWizard() {
   const [dateTo, setDateTo] = useState(todayPlus(8));
   const [carNumber, setCarNumber] = useState("");
   const [carModel, setCarModel] = useState("");
+  const [email, setEmail] = useState("");
   const [usePoints, setUsePoints] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState<string>("");
+  const [createdPrice, setCreatedPrice] = useState(0);
+  const [createdName, setCreatedName] = useState("");
 
   useEffect(() => { analytics.screenView("booking_parking"); analytics.calcStarted(); }, []);
 
@@ -57,11 +66,15 @@ export default function ParkingWizard() {
       dateTo: dateTo.toISOString(),
       carNumber: carNumber.trim().toUpperCase(),
       carModel: carModel.trim() || undefined,
+      email: email.trim() || undefined,
       useLoyaltyPoints: usePoints ? availablePoints : 0,
     }),
     onSuccess: (r) => {
       analytics.bookingCreated({ airport: AIRPORT, days: calc?.days ?? 0, priceRub: r.booking.priceRub });
-      router.replace(`/booking/${r.booking.id}`);
+      setCreatedBookingId(r.booking.id);
+      setCreatedPrice(r.booking.priceRub);
+      setCreatedName(carNumber.trim().toUpperCase() || "клиент");
+      setSuccessOpen(true);
     },
     onError: (e: Error) => setError(e.message),
   });
@@ -100,30 +113,37 @@ export default function ParkingWizard() {
             <View style={s.airportBadge}>
               <Text style={s.airportBadgeIco}>✈</Text>
               <View style={{ flex: 1 }}>
-                <Text style={s.airportBadgeTitle}>Парковка у Шереметьево</Text>
+                <Text style={s.airportBadgeTitle}>Парковка Шереметьево</Text>
                 <Text style={s.airportBadgeLede}>5 минут до терминалов B / C / D · трансфер 24/7</Text>
               </View>
+              <TouchableOpacity style={s.mapBtn} onPress={() => setMapOpen(true)} activeOpacity={0.7}>
+                <Text style={s.mapBtnTxt}>📍 Схема</Text>
+              </TouchableOpacity>
             </View>
 
             <Text style={s.title}>Когда едете?</Text>
             <Text style={s.lede}>Дата заезда — за 3 часа до вылета. Выезд — после возвращения.</Text>
 
-            <Text style={s.label}>Заезд</Text>
-            <TextInput
-              style={s.input}
-              value={formatDateInput(dateFrom)}
-              onChangeText={(v) => setDateFrom(parseDateInput(v, 10))}
-              placeholder="ГГГГ-ММ-ДД"
-              {...({ type: "date" } as any)}
-            />
-
-            <Text style={s.label}>Выезд</Text>
-            <TextInput
-              style={s.input}
-              value={formatDateInput(dateTo)}
-              onChangeText={(v) => setDateTo(parseDateInput(v, 10))}
-              placeholder="ГГГГ-ММ-ДД"
-              {...({ type: "date" } as any)}
+            <View style={{ marginBottom: spacing.md }}>
+              <DatePickerField
+                label="Заезд"
+                value={dateFrom}
+                minimumDate={new Date()}
+                onChange={(d) => {
+                  setDateFrom(d);
+                  if (dateTo.getTime() <= d.getTime()) {
+                    const next = new Date(d);
+                    next.setDate(next.getDate() + 1);
+                    setDateTo(next);
+                  }
+                }}
+              />
+            </View>
+            <DatePickerField
+              label="Выезд"
+              value={dateTo}
+              minimumDate={dateFrom}
+              onChange={setDateTo}
             />
 
             <View style={s.daysBox}>
@@ -164,6 +184,18 @@ export default function ParkingWizard() {
               onChangeText={setCarModel}
               placeholder="Toyota Camry"
               placeholderTextColor={colors.textMuted}
+            />
+
+            <Text style={s.label}>Email для подтверждения (необязательно)</Text>
+            <TextInput
+              style={s.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
             />
 
             {availablePoints > 0 && (
@@ -233,6 +265,22 @@ export default function ParkingWizard() {
           </TouchableOpacity>
         )}
       </View>
+
+      <BookingSuccessModal
+        visible={successOpen}
+        name={createdName}
+        dateFrom={dateFrom}
+        priceRub={createdPrice}
+        bookingId={createdBookingId}
+        service="parking"
+        onClose={() => {
+          setSuccessOpen(false);
+          router.replace(`/booking/${createdBookingId}`);
+        }}
+        onShowMap={() => setMapOpen(true)}
+      />
+
+      <RouteMapModal visible={mapOpen} onClose={() => setMapOpen(false)} />
     </View>
   );
 }
@@ -274,6 +322,8 @@ const s = StyleSheet.create({
   airportBadgeIco: { fontSize: 28, marginRight: spacing.md, color: colors.primary },
   airportBadgeTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: "600" },
   airportBadgeLede: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  mapBtn: { backgroundColor: colors.primary, paddingVertical: 8, paddingHorizontal: 12, borderRadius: radii.md, marginLeft: spacing.sm },
+  mapBtnTxt: { color: colors.textOnDark, fontSize: 12, fontWeight: "700" },
 
   title: { color: colors.textPrimary, fontSize: 24, fontWeight: "300", fontFamily: fonts.heading, marginBottom: spacing.sm },
   lede: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: spacing.lg },
