@@ -21,6 +21,7 @@
       "buildNumber": "11",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["yandexnavi", "yandexmaps"],
         "NSAppTransportSecurity": {
           "NSExceptionDomains": {
             "api.uletnayaparkovka.ru": {
@@ -51,7 +52,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "./plugins/withYandexQueries.js"
     ],
     "experiments": {
       "typedRoutes": true

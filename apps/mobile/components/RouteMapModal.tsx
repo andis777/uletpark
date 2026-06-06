@@ -1,10 +1,11 @@
 import { Modal, View, Text, TouchableOpacity, Linking, StyleSheet, Pressable, Platform } from "react-native";
 import { colors, radii, spacing } from "@/lib/theme";
+import { PARKING } from "@/lib/navigator";
 
-const LAT = 55.99127;
-const LON = 37.42298;
-const NAME = "Улётная Пит-стоп парковка";
-const ADDR = "с. Чашниково, г.о. Химки";
+const LAT = PARKING.lat;
+const LON = PARKING.lon;
+const NAME = PARKING.name;
+const ADDR = PARKING.addr;
 
 interface Props {
   visible: boolean;
@@ -16,17 +17,6 @@ export function RouteMapModal({ visible, onClose }: Props) {
     // Веб-ссылка работает на всех платформах: открывает приложение Я.Карт или браузер
     const url = `https://yandex.ru/maps/?rtext=~${LAT},${LON}&rtt=auto&z=15`;
     Linking.openURL(url).catch(() => {});
-  }
-
-  function openYandexNavigator() {
-    // Deep link в Я.Навигатор. Если не установлен — fallback на веб.
-    const deep = `yandexnavi://build_route_on_map?lat_to=${LAT}&lon_to=${LON}`;
-    Linking.canOpenURL(deep).then(can => {
-      if (can) Linking.openURL(deep);
-      else Linking.openURL(`https://yandex.ru/maps/?rtext=~${LAT},${LON}&rtt=auto`);
-    }).catch(() => {
-      Linking.openURL(`https://yandex.ru/maps/?rtext=~${LAT},${LON}&rtt=auto`);
-    });
   }
 
   return (
@@ -66,9 +56,6 @@ export function RouteMapModal({ visible, onClose }: Props) {
           <View style={s.btnRow}>
             <TouchableOpacity style={s.btnPrimary} onPress={openYandexMapsRoute} activeOpacity={0.85}>
               <Text style={s.btnPrimaryTxt}>🧭 Построить маршрут</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.btnSecondary} onPress={openYandexNavigator} activeOpacity={0.85}>
-              <Text style={s.btnSecondaryTxt}>📱 Я.Навигатор</Text>
             </TouchableOpacity>
           </View>
 

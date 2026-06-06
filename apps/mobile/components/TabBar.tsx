@@ -15,6 +15,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform } from "re
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { colors, typography, spacing, radii, shadows } from "@/lib/theme";
+import { openParkingNavigator } from "@/lib/navigator";
 
 // SVG-иконки прямо в компоненте (без зависимостей @expo/vector-icons)
 function Icon({ name, color, size = 22 }: { name: TabIcon; color: string; size?: number }) {
@@ -80,8 +81,26 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             />
           );
         })}
+
+        {/* Навигатор — не вкладка, а действие: сразу строит маршрут на нашу
+            парковку в Я.Навигаторе (Шереметьево). */}
+        <NavButton onPress={openParkingNavigator} />
       </View>
     </View>
+  );
+}
+
+function NavButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress} style={s.tab} activeOpacity={0.7}>
+      <View style={[s.pill, s.navPill]} />
+      <View style={s.tabContent}>
+        <Text style={{ fontSize: 20, color: colors.textOnPrimary, lineHeight: 24 }}>🧭</Text>
+        <Text style={[s.label, { color: colors.textOnPrimary, fontWeight: "700" }]}>
+          Навигатор
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -184,6 +203,11 @@ const s = StyleSheet.create({
     right: 4,
     backgroundColor: colors.primary,
     borderRadius: radii.xl,
+  },
+
+  // Навигатор-кнопка всегда подсвечена (action, а не активная вкладка)
+  navPill: {
+    opacity: 1,
   },
 
   tabContent: {
