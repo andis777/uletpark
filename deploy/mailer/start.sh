@@ -49,10 +49,16 @@ sed -i \
   -e "s|MAILER_DOMAIN|${DOMAIN}|g" \
   /etc/exim/exim.conf
 
+# Восстанавливаем strict permissions после sed-правки
+chown root:exim /etc/exim/exim.conf
+chmod 640 /etc/exim/exim.conf
+chown root:exim /etc/exim 2>/dev/null || true
+chmod 750 /etc/exim 2>/dev/null || true
+
 # 4. Проверяем конфиг
 echo "[mailer] Проверка конфига..."
 exim -bV >/dev/null 2>&1 || true
-exim -bP -C /etc/exim/exim.conf primary_hostname || (echo "config error"; exit 1)
+exim -bP -C /etc/exim/exim.conf primary_hostname || (echo "config error"; exim -bP -C /etc/exim/exim.conf 2>&1 | head -20; exit 1)
 
 # 5. Запуск
 echo "[mailer] Запускаю Exim daemon на 0.0.0.0:25..."

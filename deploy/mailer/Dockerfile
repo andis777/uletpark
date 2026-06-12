@@ -8,7 +8,12 @@ RUN apk add --no-cache exim exim-doc openssl bash tini ca-certificates tzdata \
 # Кладём конфиг и стартовый скрипт
 COPY exim.conf /etc/exim/exim.conf
 COPY start.sh /usr/local/bin/start-mailer.sh
-RUN chmod +x /usr/local/bin/start-mailer.sh
+# Exim strict про permissions: файл должен быть root:exim 640 (или 644)
+# и НЕ world-writable. После start.sh подставляет hostname в конфиг —
+# fixup permissions делаем там, иначе sed-edit ломает права.
+RUN chmod +x /usr/local/bin/start-mailer.sh \
+ && chown root:exim /etc/exim/exim.conf \
+ && chmod 640 /etc/exim/exim.conf
 
 # Тома для DKIM ключей и почтовой очереди (persist между перезапусками)
 VOLUME ["/etc/exim/dkim", "/var/spool/exim"]
