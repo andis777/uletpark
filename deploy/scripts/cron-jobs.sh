@@ -28,6 +28,13 @@ case "$ACTION" in
     echo
     ;;
 
+  sms-balance-check)
+    echo "[$(date -Iseconds)] sms-balance-check"
+    curl -fsS -X GET "$API/api/cron/sms-balance-check" \
+      -H "Authorization: Bearer $SECRET"
+    echo
+    ;;
+
   pg-backup)
     DATE=$(date +%Y%m%d-%H%M)
     OUT="/backups/uletnaya-$DATE.sql.gz"
@@ -44,8 +51,15 @@ case "$ACTION" in
     echo "Backup OK: $(du -h $OUT | cut -f1)"
     ;;
 
+  daily-report)
+    echo "[$(date -Iseconds)] daily-report"
+    curl -fsS -X GET "$API/api/cron/daily-report" \
+      -H "Authorization: Bearer $SECRET"
+    echo
+    ;;
+
   *)
-    echo "Usage: $0 {refresh-analytics|sync-amocrm|pg-backup}"
+    echo "Usage: $0 {refresh-analytics|sync-amocrm|sms-balance-check|pg-backup|daily-report}"
     exit 1
     ;;
 esac

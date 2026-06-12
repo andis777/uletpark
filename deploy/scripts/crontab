@@ -9,3 +9,9 @@
 
 # Раз в сутки в 4:00 ночи: Postgres backup в файл
 0 4 * * * /cron-jobs.sh pg-backup >> /var/log/cron.log 2>&1
+
+# Раз в сутки в 9:00 утра: проверка баланса sms.ru, алерт если < 100₽, SMS админу если < 30₽
+0 9 * * * /cron-jobs.sh sms-balance-check >> /var/log/cron.log 2>&1
+
+# Раз в сутки в 9:05 (после баланса): сводный отчёт за вчера в Telegram
+5 9 * * * /cron-jobs.sh daily-report >> /var/log/cron.log 2>&1
