@@ -1,0 +1,40 @@
+name: Debug Mailer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: [self-hosted, uletnaya]
+    timeout-minutes: 5
+    steps:
+      - name: Diagnose mailer
+        run: |
+          echo "=== Networks api присоединён ==="
+          sudo -n docker inspect uletnaya-api --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}={{$v.IPAddress}} {{end}}'
+          echo ""
+          echo "=== Networks mailer присоединён ==="
+          sudo -n docker inspect uletnaya-mailer --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}={{$v.IPAddress}} {{end}}'
+          echo ""
+          echo "=== Логи Exim последние 30 строк ==="
+          sudo -n docker logs uletnaya-mailer 2>&1 | tail -30
+          echo ""
+          echo "=== Проверка SMTP через telnet-style ==="
+          sudo -n docker exec uletnaya-api node -e "
+            const net = require('net');
+            const s = net.createConnection({host:'mailer',port:25,timeout:5000});
+            const cmds = ['EHLO api.uletnayaparkovka.ru','MAIL FROM:<noreply@uletnayaparkovka.ru>','RCPT TO:<test@gmail.com>','QUIT'];
+            let i = 0;
+            s.on('connect', () => console.log('TCP OK'));
+            s.on('data', d => {
+              console.log('← ' + d.toString().trim());
+              if (i < cmds.length) {
+                console.log('→ ' + cmds[i]);
+                s.write(cmds[i] + '\r\n');
+                i++;
+              }
+            });
+            s.on('end', () => process.exit(0));
+            s.on('error', e => { console.log('ERR ' + e.message); process.exit(1); });
+            setTimeout(() => process.exit(0), 7000);
+          "
