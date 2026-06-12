@@ -51,7 +51,7 @@ services:
     ports:
       - "127.0.0.1:7982:3000"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -77,13 +77,35 @@ services:
       - ./backups:/backups
     command: >
       sh -c "apk add --no-cache curl bash postgresql-client &&
-             
+
              crond -f -l 8"
+    networks:
+      - uletnaya
+
+  # Собственный outbound SMTP (Exim + DKIM) — для отправки писем клиентам
+  # и менеджеру. Слушает на 25/tcp внутри docker network, без авторизации.
+  # DKIM-ключи генерируются автоматом при первом запуске и сохраняются
+  # в volume mailer_dkim. DNS-записи для добавления печатает в stdout.
+  mailer:
+    build:
+      context: ./deploy/mailer
+    image: uletnaya/mailer:local
+    container_name: uletnaya-mailer
+    restart: unless-stopped
+    environment:
+      MAIL_DOMAIN: uletnayaparkovka.ru
+      MAIL_HOSTNAME: mail.uletnayaparkovka.ru
+    volumes:
+      - mailer_dkim:/etc/exim/dkim
+      - mailer_spool:/var/spool/exim
+    # Наружу не публикуем — общается только с api через docker network
     networks:
       - uletnaya
 
 volumes:
   postgres_data:
+  mailer_dkim:
+  mailer_spool:
 
 networks:
   uletnaya:

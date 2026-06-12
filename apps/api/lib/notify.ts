@@ -9,12 +9,16 @@ import nodemailer from "nodemailer";
 const TG_BOT = process.env.TELEGRAM_BOT_TOKEN;
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID;
 
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = Number(process.env.SMTP_PORT ?? 465);
+// Дефолт — наш собственный Exim в docker-compose сервисе "mailer:25"
+// (без аутентификации, доверенная сеть внутри docker). Внешний SMTP можно
+// переопределить через env. Когда SMTP_HOST=mailer — auth не используется.
+const SMTP_HOST = process.env.SMTP_HOST || "mailer";
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? (process.env.SMTP_HOST ? 465 : 25));
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM ?? SMTP_USER;
+const SMTP_FROM = process.env.SMTP_FROM ?? "Улётная Парковка <noreply@uletnayaparkovka.ru>";
 const SMTP_TO = process.env.SMTP_TO ?? "uletnayaparkovka@gmail.com";
+const SMTP_SECURE = (process.env.SMTP_SECURE ?? (SMTP_PORT === 465 ? "true" : "false")) === "true";
 
 export interface LeadPayload {
   name: string;
@@ -93,12 +97,20 @@ function buildTelegramMessage(l: LeadPayload): string {
 let _transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 function getTransporter() {
   if (_transporter) return _transporter;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  // Если SMTP_HOST не задан явно — используем встроенный Exim "mailer:25" без auth.
+  // Если задан внешний SMTP — требуем USER+PASS.
+  const useInternalExim = !process.env.SMTP_HOST;
+  if (!useInternalExim && (!SMTP_USER || !SMTP_PASS)) return null;
   _transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
-    secure: SMTP_PORT === 465,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    secure: SMTP_SECURE,
+    auth: useInternalExim ? undefined : { user: SMTP_USER!, pass: SMTP_PASS! },
+    // Внутренний Exim не требует TLS и не имеет валидного сертификата
+    tls: useInternalExim ? { rejectUnauthorized: false } : undefined,
+    // Внутри docker network — быстрые таймауты
+    connectionTimeout: useInternalExim ? 5000 : 30000,
+    socketTimeout: useInternalExim ? 10000 : 60000,
   });
   return _transporter;
 }
