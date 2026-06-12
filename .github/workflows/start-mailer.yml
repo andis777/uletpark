@@ -1,0 +1,45 @@
+# =========================================================================
+# One-shot: собирает образ mailer + запускает контейнер на сервере
+# Печатает DNS-записи которые надо добавить (SPF/DKIM/DMARC/PTR)
+# Запуск: gh workflow run "Start Mailer" -R andis777/uletpark
+# =========================================================================
+name: Start Mailer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  start:
+    runs-on: [self-hosted, uletnaya]
+    timeout-minutes: 10
+    steps:
+      - name: Build mailer image
+        run: |
+          cd /opt/uletnaya
+          sudo -n docker compose -f docker-compose.fastpanel.yml --env-file .env.production build mailer
+
+      - name: Start mailer service
+        run: |
+          cd /opt/uletnaya
+          sudo -n docker compose -f docker-compose.fastpanel.yml --env-file .env.production up -d mailer
+
+      - name: Wait + print DNS records from logs
+        run: |
+          sleep 8
+          echo ""
+          echo "============================================================"
+          echo "  ЛОГ MAILER КОНТЕЙНЕРА (внутри — DNS записи для копирования)"
+          echo "============================================================"
+          sudo -n docker logs uletnaya-mailer 2>&1 | head -60
+          echo ""
+          echo "============================================================"
+          echo "  СТАТУС:"
+          echo "============================================================"
+          sudo -n docker ps --filter name=uletnaya-mailer --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+      - name: Smoke test SMTP from api container
+        run: |
+          # Проверяем что api → mailer:25 доступен
+          sudo -n docker exec uletnaya-api sh -c "wget -q --spider --tries=1 --timeout=3 http://mailer:25 2>&1; echo Exit: $?" || true
+          # Альтернативно — netcat-style проверка через node
+          sudo -n docker exec uletnaya-api node -e "require('net').createConnection({host:'mailer',port:25},()=>{console.log('✓ mailer:25 reachable from api');process.exit(0)}).on('error',e=>{console.log('✗ ' + e.message);process.exit(1)})"
