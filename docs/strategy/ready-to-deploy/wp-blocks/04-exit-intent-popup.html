@@ -1,0 +1,192 @@
+<!--
+============================================================
+БЛОК «Exit-intent» — поп-ап при попытке закрыть страницу
+============================================================
+КУДА ВСТАВИТЬ:
+  Главная — самый низ, один блок «Custom HTML» в футер.
+ЗАЧЕМ:
+  Срабатывает когда курсор уходит к крестику закрытия вкладки
+  ИЛИ когда пользователь скроллит вверх к адресной строке (мобильный).
+  Захватываем 4-8% уходящих посетителей.
+ИНТЕГРАЦИЯ:
+  Сейчас форма шлёт на /wp-json/contact-form-7/v1/contact-forms/X
+  (если CF7 настроен) ИЛИ просто открывает калькулятор с промокодом.
+  Можно переделать на отправку в amoCRM напрямую (см. ниже).
+ПРОМОКОД:
+  NEW5 — настрой в uCalc или amoCRM, чтобы он давал -5%.
+============================================================
+-->
+<style>
+.up-exit-overlay {
+  position:fixed; inset:0; z-index:99999; display:none;
+  background:rgba(15,20,25,0.78); backdrop-filter:blur(8px);
+  align-items:center; justify-content:center; padding:16px;
+  font-family:Inter,Segoe UI,sans-serif;
+  animation:up-fade 0.25s ease;
+}
+.up-exit-overlay.show { display:flex; }
+.up-exit-modal {
+  background:#fff; border-radius:24px; padding:40px 32px;
+  max-width:480px; width:100%; text-align:center;
+  position:relative;
+  animation:up-pop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:0 24px 60px rgba(0,0,0,0.4);
+}
+.up-exit-close {
+  position:absolute; top:16px; right:16px;
+  width:32px; height:32px; border-radius:50%;
+  background:#f4f5f7; border:0; cursor:pointer;
+  font-size:18px; color:#1a1d24;
+}
+.up-exit-icon {
+  font-size:64px; margin-bottom:8px;
+}
+.up-exit-modal h2 {
+  font-size:24px; font-weight:800; color:#0f4d47; margin:0 0 8px;
+}
+.up-exit-modal p {
+  font-size:15px; color:#4b5161; margin:0 0 24px; line-height:1.5;
+}
+.up-exit-modal p strong { color:#0f1419; }
+.up-exit-form {
+  display:flex; flex-direction:column; gap:10px;
+}
+.up-exit-form input[type=tel] {
+  width:100%; padding:14px 16px;
+  border:1.5px solid #e5e7eb; border-radius:12px;
+  font-size:16px; outline:none; box-sizing:border-box;
+}
+.up-exit-form input[type=tel]:focus { border-color:#3FB8AF; }
+.up-exit-form button {
+  background:#3FB8AF; color:#fff; padding:16px;
+  border:0; border-radius:12px; font-weight:800; font-size:15px;
+  cursor:pointer; box-shadow:0 8px 24px rgba(63,184,175,0.3);
+  transition:transform 0.15s;
+}
+.up-exit-form button:hover { transform:translateY(-2px); }
+.up-exit-foot {
+  margin-top:14px; font-size:11px; color:#8a8f9f;
+}
+.up-exit-promo {
+  display:inline-block; background:#ecf8f1; color:#1a6e4e;
+  padding:4px 12px; border-radius:100px;
+  font-weight:800; letter-spacing:1px; font-size:13px;
+  margin-bottom:16px;
+}
+.up-exit-success {
+  display:none; text-align:center;
+}
+.up-exit-success.show { display:block; }
+@keyframes up-fade { from{opacity:0;} to{opacity:1;} }
+@keyframes up-pop {
+  0% { opacity:0; transform:scale(0.85) translateY(20px); }
+  100% { opacity:1; transform:scale(1) translateY(0); }
+}
+</style>
+<div class="up-exit-overlay" id="upExitOverlay">
+  <div class="up-exit-modal" onclick="event.stopPropagation();">
+    <button class="up-exit-close" id="upExitClose" aria-label="Закрыть">×</button>
+    <div class="up-exit-form-block">
+      <div class="up-exit-icon">🎁</div>
+      <div class="up-exit-promo">ПРОМОКОД NEW5</div>
+      <h2>Подождите 1 секунду!</h2>
+      <p>Оставьте телефон — пришлём СМС с&nbsp;<strong>промокодом на&nbsp;скидку 5%</strong> для первого бронирования. Без обязательств — позвоним и&nbsp;подскажем.</p>
+      <form class="up-exit-form" id="upExitForm">
+        <input type="tel" name="phone" id="upExitPhone" placeholder="+7 (___) ___-__-__" required maxlength="20" autocomplete="tel">
+        <button type="submit">Получить промокод →</button>
+      </form>
+      <div class="up-exit-foot">Нажимая, вы соглашаетесь с обработкой персональных данных</div>
+    </div>
+    <div class="up-exit-success" id="upExitSuccess">
+      <div class="up-exit-icon">✅</div>
+      <h2>Промокод в&nbsp;SMS!</h2>
+      <p>Используйте код&nbsp;<strong>NEW5</strong> в&nbsp;калькуляторе — получите скидку 5% на первую бронь.<br>Если SMS не пришла — звоните&nbsp;<a href="tel:+79099148881" style="color:#0f4d47;font-weight:700">+7&nbsp;(909)&nbsp;914-88-81</a></p>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  var shown = false;
+  var overlay = document.getElementById('upExitOverlay');
+  var closeBtn = document.getElementById('upExitClose');
+  var form = document.getElementById('upExitForm');
+  var success = document.getElementById('upExitSuccess');
+  var formBlock = document.querySelector('.up-exit-form-block');
+  if (!overlay) return;
+
+  function open() {
+    if (shown) return;
+    if (sessionStorage.getItem('upExitClosed')) return;
+    if (localStorage.getItem('upExitClosed24h')) return;
+    overlay.classList.add('show');
+    shown = true;
+    if (window.ym) try { window.ym('reachGoal', 'exit_intent_shown'); } catch(e) {}
+  }
+  function close() {
+    overlay.classList.remove('show');
+    sessionStorage.setItem('upExitClosed', '1');
+    localStorage.setItem('upExitClosed24h', String(Date.now() + 24*3600*1000));
+  }
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+
+  // Desktop — exit intent при движении курсора к верху
+  document.addEventListener('mouseout', function(e) {
+    if (e.clientY <= 0 && !e.relatedTarget) open();
+  });
+
+  // Mobile — после 25 сек на странице + скролл назад
+  if (window.matchMedia('(max-width:760px)').matches) {
+    var lastY = window.scrollY;
+    setTimeout(function() {
+      window.addEventListener('scroll', function() {
+        if (lastY - window.scrollY > 100) open();
+        lastY = window.scrollY;
+      }, { passive: true });
+    }, 25000);
+  }
+
+  // Маска для телефона
+  var phone = document.getElementById('upExitPhone');
+  phone.addEventListener('input', function(e) {
+    var d = e.target.value.replace(/\D/g, '');
+    if (d[0] === '8') d = '7' + d.slice(1);
+    if (!d.startsWith('7')) d = '7' + d;
+    var f = '+7 ';
+    if (d.length > 1) f += '(' + d.slice(1, 4);
+    if (d.length > 4) f += ') ' + d.slice(4, 7);
+    if (d.length > 7) f += '-' + d.slice(7, 9);
+    if (d.length > 9) f += '-' + d.slice(9, 11);
+    e.target.value = f;
+  });
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var phoneValue = phone.value;
+    // Отправляем в наш API (если настроен) — fallback если нет
+    try {
+      fetch('https://api.uletnayaparkovka.ru/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Exit-intent',
+          phone: phoneValue,
+          service: 'parking',
+          dateFrom: new Date().toISOString().slice(0,10),
+          dateTo: new Date(Date.now()+5*86400000).toISOString().slice(0,10),
+          source: 'wp-exit-intent',
+          notes: 'Промокод NEW5 — скидка 5% для нового клиента',
+        }),
+      });
+    } catch (err) {}
+
+    if (window.ym) try { window.ym('reachGoal', 'exit_intent_submit'); } catch(e) {}
+    if (window.gtag) try { window.gtag('event', 'lead_capture', { source: 'exit_intent' }); } catch(e) {}
+
+    formBlock.style.display = 'none';
+    success.classList.add('show');
+    sessionStorage.setItem('upExitClosed', '1');
+    localStorage.setItem('upExitClosed24h', String(Date.now() + 24*3600*1000));
+  });
+})();
+</script>

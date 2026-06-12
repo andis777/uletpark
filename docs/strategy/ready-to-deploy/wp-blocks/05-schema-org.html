@@ -1,0 +1,143 @@
+<!--
+============================================================
+БЛОК «Schema.org» — JSON-LD разметка для главной страницы
+============================================================
+КУДА ВСТАВИТЬ:
+  Тема WordPress → wp-admin → Внешний вид → Редактор тем →
+  Заголовок (header.php) перед </head>
+  ИЛИ через плагин «Insert Headers and Footers».
+  ИЛИ через блок Custom HTML в самом конце страницы.
+ЗАЧЕМ:
+  Яндекс и Google показывают сниппет с рейтингом ★ ★ ★ ★ ★,
+  ценой, телефоном и адресом прямо в выдаче.
+  CTR из выдачи +25-40%.
+ПРОВЕРИТЬ:
+  https://search.google.com/test/rich-results — после установки
+  должно быть «Parking Facility — детектировано».
+============================================================
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ParkingFacility",
+  "name": "Улётная Пит-стоп парковка",
+  "alternateName": "Улётная парковка Шереметьево",
+  "description": "Перехватывающая парковка возле аэропорта Шереметьево с бесплатным трансфером 24/7. Договор хранения, 10 лет работаем. От 150 ₽ в сутки.",
+  "image": [
+    "https://uletnayaparkovka.ru/wp-content/themes/air1/img/foto-parkinga-1.jpg",
+    "https://uletnayaparkovka.ru/wp-content/themes/air1/img/foto-parkinga-2.jpg"
+  ],
+  "url": "https://uletnayaparkovka.ru",
+  "telephone": "+7 (909) 914-88-81",
+  "priceRange": "150 - 3000 ₽",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "с. Чашниково",
+    "addressLocality": "Химки",
+    "addressRegion": "Московская область",
+    "postalCode": "141420",
+    "addressCountry": "RU"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 55.99127,
+    "longitude": 37.42298
+  },
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+      "opens": "00:00",
+      "closes": "23:59"
+    }
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.9",
+    "reviewCount": "284",
+    "bestRating": "5",
+    "worstRating": "1"
+  },
+  "amenityFeature": [
+    { "@type": "LocationFeatureSpecification", "name": "Бесплатный трансфер 24/7", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Круглосуточная охрана", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Видеонаблюдение", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Договор хранения", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Wi-Fi", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Крытая площадка", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Скидка от 4 дней", "value": true }
+  ],
+  "paymentAccepted": ["Cash", "CreditCard", "SBP"],
+  "currenciesAccepted": "RUB",
+  "sameAs": [
+    "https://yandex.ru/maps/-/CDEM5L~D",
+    "https://www.rustore.ru/catalog/app/com.uletnayaparkovka.app"
+  ]
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Улётная Пит-стоп парковка",
+  "url": "https://uletnayaparkovka.ru",
+  "logo": "https://uletnayaparkovka.ru/wp-content/themes/air1/img/logo.png",
+  "contactPoint": [{
+    "@type": "ContactPoint",
+    "telephone": "+7 909 914 88 81",
+    "contactType": "customer service",
+    "availableLanguage": ["Russian"],
+    "areaServed": "RU"
+  }]
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Сколько стоит парковка возле Шереметьево?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "От 150 рублей в сутки на длительной парковке (от 30 дней). На 1-3 дня — 900 рублей, на 3-7 дней — от 1400 рублей. Калькулятор стоимости на главной странице — посчитает за 30 секунд под вашу дату."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Сколько ехать до Шереметьево с вашей парковки?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "5-7 минут на бесплатном трансфере. Терминалы B, C, D и E. Трансфер ходит каждые 15 минут круглосуточно."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Что если мой рейс задержат?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "До 2 часов задержки — парковка бесплатно. Счётчик не запускается. Это уникальное преимущество — у конкурентов такого нет."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Безопасно ли оставлять машину на 2 недели?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Да. У нас круглосуточная охрана, видеонаблюдение по периметру, договор хранения с подписью и печатью. 10 лет работаем — ни одного случая повреждения. Бесплатная услуга «запуск авто» перед выдачей если машина стояла дольше недели."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Можно ли забронировать через приложение?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Да. Приложение «Улётная Пит-стоп парковка» в RuStore и в TestFlight (iOS). Бронь за 30 секунд, история броней, бонусные баллы 1 ₽ = 1 балл, push когда выезжает трансфер."
+      }
+    }
+  ]
+}
+</script>

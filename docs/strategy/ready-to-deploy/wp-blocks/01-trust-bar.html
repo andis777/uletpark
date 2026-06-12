@@ -1,0 +1,75 @@
+<!--
+============================================================
+БЛОК «Trust-bar» — полоска доверия выше калькулятора
+============================================================
+КУДА ВСТАВИТЬ:
+  wp-admin → Главная страница → Добавить блок «Custom HTML»
+  Поставить ВЫШЕ uCalc-калькулятора, ниже шапки.
+ЗАЧЕМ:
+  За 0.5 секунды посетитель видит «здесь не разводят» —
+  доверие до того, как откроет калькулятор. Конверсия +15-25%.
+ОСТОРОЖНО:
+  Цифры отзывов нужно актуализировать (вместо «284» — реальное).
+============================================================
+-->
+<style>
+.up-trustbar {
+  background: linear-gradient(90deg,#0f4d47 0%,#1a6e4e 100%);
+  color:#fff; padding:14px 16px; border-radius:12px;
+  margin:16px 0 24px; font-family:Inter,Segoe UI,sans-serif;
+}
+.up-trustbar-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+  max-width:1200px; margin:0 auto;
+}
+.up-trustbar-item {
+  display:flex; align-items:center; gap:10px;
+  border-right:1px solid rgba(255,255,255,0.15); padding-right:16px;
+}
+.up-trustbar-item:last-child { border-right:none; }
+.up-trustbar-icon {
+  font-size:24px; flex-shrink:0;
+  background:rgba(255,255,255,0.12);
+  width:42px; height:42px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+}
+.up-trustbar-text { flex:1; min-width:0; }
+.up-trustbar-num { font-weight:800; font-size:16px; line-height:1.1; }
+.up-trustbar-lbl { font-size:11px; opacity:0.85; margin-top:2px; }
+@media (max-width:760px) {
+  .up-trustbar-grid { grid-template-columns:repeat(2,1fr); gap:12px; }
+  .up-trustbar-item { border-right:none; padding-right:0; }
+}
+</style>
+<div class="up-trustbar">
+  <div class="up-trustbar-grid">
+    <div class="up-trustbar-item">
+      <div class="up-trustbar-icon">⭐</div>
+      <div class="up-trustbar-text">
+        <div class="up-trustbar-num">4.9 / 5</div>
+        <div class="up-trustbar-lbl">284+ отзывов на Я.Картах</div>
+      </div>
+    </div>
+    <div class="up-trustbar-item">
+      <div class="up-trustbar-icon">🛡️</div>
+      <div class="up-trustbar-text">
+        <div class="up-trustbar-num">Договор хранения</div>
+        <div class="up-trustbar-lbl">Юридическая ответственность за машину</div>
+      </div>
+    </div>
+    <div class="up-trustbar-item">
+      <div class="up-trustbar-icon">🏆</div>
+      <div class="up-trustbar-text">
+        <div class="up-trustbar-num">10 лет на рынке</div>
+        <div class="up-trustbar-lbl">С 2016 года, 50 000+ клиентов</div>
+      </div>
+    </div>
+    <div class="up-trustbar-item">
+      <div class="up-trustbar-icon">🚐</div>
+      <div class="up-trustbar-text">
+        <div class="up-trustbar-num">Трансфер 24/7</div>
+        <div class="up-trustbar-lbl">5 минут до терминала · бесплатно</div>
+      </div>
+    </div>
+  </div>
+</div>
