@@ -23,23 +23,35 @@ jobs:
           cd /opt/uletnaya
           sudo -n docker compose -f docker-compose.fastpanel.yml --env-file .env.production up -d mailer
 
+      - name: Recreate api (чтобы получил DNS для нового mailer)
+        run: |
+          cd /opt/uletnaya
+          sudo -n docker compose -f docker-compose.fastpanel.yml --env-file .env.production up -d --force-recreate api
+          sleep 6
+
       - name: Wait + print DNS records from logs
         run: |
-          sleep 8
+          sleep 5
           echo ""
           echo "============================================================"
           echo "  ЛОГ MAILER КОНТЕЙНЕРА (внутри — DNS записи для копирования)"
           echo "============================================================"
-          sudo -n docker logs uletnaya-mailer 2>&1 | head -60
+          sudo -n docker logs uletnaya-mailer 2>&1 | head -80
           echo ""
           echo "============================================================"
-          echo "  СТАТУС:"
+          echo "  СТАТУС КОНТЕЙНЕРОВ:"
           echo "============================================================"
-          sudo -n docker ps --filter name=uletnaya-mailer --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          sudo -n docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep uletnaya
 
       - name: Smoke test SMTP from api container
         run: |
-          # Проверяем что api → mailer:25 доступен
-          sudo -n docker exec uletnaya-api sh -c "wget -q --spider --tries=1 --timeout=3 http://mailer:25 2>&1; echo Exit: $?" || true
-          # Альтернативно — netcat-style проверка через node
-          sudo -n docker exec uletnaya-api node -e "require('net').createConnection({host:'mailer',port:25},()=>{console.log('✓ mailer:25 reachable from api');process.exit(0)}).on('error',e=>{console.log('✗ ' + e.message);process.exit(1)})"
+          # Подключаемся к mailer:25 через node net (внутри api контейнера)
+          sudo -n docker exec uletnaya-api node -e "
+            const net = require('net');
+            const sock = net.createConnection({host:'mailer',port:25,timeout:5000});
+            sock.on('connect', () => { console.log('✓ TCP connect to mailer:25 OK'); });
+            sock.on('data', d => { console.log('← ' + d.toString().trim()); sock.write('QUIT\r\n'); });
+            sock.on('error', e => { console.log('✗ ' + e.message); process.exit(1); });
+            sock.on('end', () => { console.log('✓ SMTP greeting received, mailer is alive'); process.exit(0); });
+            setTimeout(() => { console.log('✗ timeout'); process.exit(1); }, 8000);
+          "

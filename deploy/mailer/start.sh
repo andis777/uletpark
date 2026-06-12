@@ -62,4 +62,8 @@ exim -bP -C /etc/exim/exim.conf primary_hostname || (echo "config error"; exim -
 
 # 5. Запуск
 echo "[mailer] Запускаю Exim daemon на 0.0.0.0:25..."
-exec exim -bd -q15m -v -C /etc/exim/exim.conf -d-all+receive+deliver+dkim
+# -bd: daemon mode listening on smtp port
+# -q15m: процессить очередь каждые 15 минут
+# -v: verbose (письма в stdout)
+# -d: debug (без +dkim т.к. Alpine собран без него)
+exec exim -bd -q15m -v -C /etc/exim/exim.conf
