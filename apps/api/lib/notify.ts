@@ -201,7 +201,7 @@ export async function notifyClient(lead: LeadPayload & { email?: string }): Prom
             ✓ Охрана + видеонаблюдение<br>
             ✓ Договор хранения<br>
             ✓ До 2 часов бесплатно при задержке рейса<br>
-            ✓ Упаковка багажа, зал ожидания, Wi-Fi
+            ✓ Зал ожидания, Wi-Fi
           </div>
 
           <p style="margin:20px 0 8px"><b>Адрес:</b> Московская обл., г.о. Химки, с. Чашниково</p>

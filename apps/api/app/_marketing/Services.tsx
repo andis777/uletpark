@@ -76,9 +76,8 @@ export function Services() {
         {/* Дополнительные услуги */}
         <div style={{ marginTop: 56 }}>
           <h3 style={{ color: "var(--graphite)", marginBottom: 24, fontSize: 22 }}>А ещё в комплекте бесплатно:</h3>
-          <div className="grid grid--4">
+          <div className="grid grid--3">
             {[
-              { ico: "🧳", t: "Упаковка багажа", s: "2 единицы" },
               { ico: "🔋", t: "Запуск авто", s: "если сел аккумулятор" },
               { ico: "💨", t: "Подкачка колёс", s: "перед поездкой" },
               { ico: "☕", t: "Зона ожидания", s: "Wi-Fi, чай, кофе" },
