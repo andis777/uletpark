@@ -3,7 +3,7 @@ node_modules/
 dist/
 .turbo/
 .env
-.env.local
+.env.*
 *.log
 .DS_Store
 .vercel
@@ -14,3 +14,12 @@ android/
 web-build/
 *.tsbuildinfo
 drizzle/
+
+# Local deploy key — never commit
+.deploy_key
+.deploy_key.pub
+
+# SEO autopilot pipeline — содержит захардкоженные секреты
+# (root-пароль сервера, TG-токен, deploy-секрет). НЕ коммитить в публичный репо
+# до выноса секретов в env. См. ssh_setup.py, auto_pipeline/php/*.php
+seo-deploy/
