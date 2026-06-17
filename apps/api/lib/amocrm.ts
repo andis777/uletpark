@@ -18,6 +18,88 @@ const REFRESH_TOKEN = process.env.AMOCRM_REFRESH_TOKEN || "";
 
 const isStub = !AMOCRM_DOMAIN || !CLIENT_ID;
 
+// --- Legacy API v2 + USER_HASH (тариф без OAuth/кнопок интеграций) ---
+// На аккаунте vsteh запись через OAuth недоступна, но v2-hash создаёт сделки.
+const HASH_LOGIN = process.env.AMOCRM_USER_LOGIN || "";
+const USER_HASH = process.env.AMOCRM_USER_HASH || "";
+const USE_HASH = !!(AMOCRM_DOMAIN && HASH_LOGIN && USER_HASH);
+const PIPELINE_ID = Number(process.env.AMOCRM_PIPELINE_ID || 7000398);   // воронка «Улетная парковка»
+const STATUS_ID = Number(process.env.AMOCRM_STATUS_ID || 58770374);      // этап «Incoming leads»
+// ID полей сделки в аккаунте vsteh
+const F_AIRPORT = 714015;
+const F_CARNUMBER = 584651;
+const F_DATE_FROM = 376065;
+const F_DATE_TO = 376079;
+
+async function v2hash(path: string, method: string, body?: unknown): Promise<any> {
+  const sep = path.includes("?") ? "&" : "?";
+  const auth = `USER_LOGIN=${encodeURIComponent(HASH_LOGIN)}&USER_HASH=${USER_HASH}`;
+  const res = await fetch(`https://${AMOCRM_DOMAIN}/api/v2${path}${sep}${auth}`, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`amoCRM v2 ${path} → ${res.status}: ${txt.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+export interface AmoParkingLead {
+  airport?: string;
+  dateFrom?: string;   // YYYY-MM-DD
+  dateTo?: string;     // YYYY-MM-DD
+  carNumber?: string;
+  phone?: string;
+  clientName?: string;
+}
+
+/** Создание сделки через legacy v2 + hash (контакты на аккаунте закрыты —
+ *  телефон/имя кладём в примечание к сделке). */
+async function createLeadV2Hash(payload: { name: string; price?: number; amo?: AmoParkingLead }): Promise<AmoCrmLead> {
+  const a = payload.amo ?? {};
+  const cf: { id: number; values: { value: string }[] }[] = [];
+  if (a.airport) cf.push({ id: F_AIRPORT, values: [{ value: a.airport }] });
+  if (a.carNumber) cf.push({ id: F_CARNUMBER, values: [{ value: a.carNumber }] });
+  if (a.dateFrom) cf.push({ id: F_DATE_FROM, values: [{ value: `${a.dateFrom} 00:00:00` }] });
+  if (a.dateTo) cf.push({ id: F_DATE_TO, values: [{ value: `${a.dateTo} 00:00:00` }] });
+
+  const data = await v2hash("/leads/", "POST", {
+    add: [{
+      name: payload.name,
+      price: payload.price,
+      status_id: STATUS_ID,
+      pipeline_id: PIPELINE_ID,
+      tags: "mobile-app",
+      ...(cf.length ? { custom_fields: cf } : {}),
+    }],
+  }) as { _embedded: { items: { id: number }[] } };
+
+  const lead = data._embedded.items[0];
+
+  // Примечание с контактными данными (контакт отдельной сущностью не создаём)
+  try {
+    const note = [
+      "Заявка из мобильного приложения «Улётная парковка».",
+      a.clientName ? `Клиент: ${a.clientName}` : "",
+      a.phone ? `Телефон: ${a.phone}` : "",
+      a.airport ? `Аэропорт: ${a.airport}` : "",
+      a.dateFrom && a.dateTo ? `Даты: ${a.dateFrom} → ${a.dateTo}` : "",
+      a.carNumber ? `Гос. номер: ${a.carNumber}` : "",
+      payload.price ? `Сумма: ${payload.price} ₽` : "",
+    ].filter(Boolean).join("\n");
+    await v2hash("/notes/", "POST", {
+      add: [{ element_id: lead.id, element_type: 2, note_type: 4, text: note }],
+    });
+  } catch (e) {
+    console.warn("[amoCRM v2] note failed:", (e as Error).message);
+  }
+
+  console.log("[amoCRM v2] lead created", lead.id);
+  return { id: lead.id } as AmoCrmLead;
+}
+
 let _accessToken: string | null = null;
 let _accessTokenExp = 0;
 
@@ -86,7 +168,10 @@ export async function createLead(payload: {
   price?: number;
   contactId?: number;
   customFields?: { field_id: number; value: string | number }[];
+  amo?: AmoParkingLead;
 }): Promise<AmoCrmLead> {
+  // Боевой путь на тарифе vsteh — legacy v2 + hash (OAuth недоступен).
+  if (USE_HASH) return createLeadV2Hash(payload);
   if (isStub) {
     console.log("[amoCRM STUB] createLead", payload);
     return stubLead(Date.now());
@@ -322,4 +407,5 @@ function stubContact(id: number): AmoCrmContact {
   };
 }
 
-export const amocrmInfo = { isStub, domain: AMOCRM_DOMAIN };
+// isStub=false когда работает hash-режим (health покажет "live")
+export const amocrmInfo = { isStub: isStub && !USE_HASH, mode: USE_HASH ? "hash" : isStub ? "stub" : "oauth", domain: AMOCRM_DOMAIN };

@@ -6,7 +6,7 @@ import { getUserFromHeader } from "@/lib/auth";
 import { calculate } from "@/lib/calculator";
 import { createLead } from "@/lib/amocrm";
 import { redeemForBooking } from "@/lib/loyalty";
-import { notifyClient, notifyTelegram, notifyAmocrm } from "@/lib/notify";
+import { notifyClient, notifyTelegram } from "@/lib/notify";
 import type { BookingDTO } from "@uletnaya/shared";
 
 export async function GET(req: Request) {
@@ -63,17 +63,32 @@ export async function POST(req: Request) {
   const [user] = await db.select().from(users).where(eq(users.id, auth.sub)).limit(1);
   if (!user) return NextResponse.json({ error: "USER_NOT_FOUND" }, { status: 404 });
 
-  // amoCRM lead создаём ДО списания баллов чтобы при ошибке не списать впустую
-  const lead = await createLead({
-    name: `Бронь ${body.data.airport} ${body.data.carNumber}`,
-    price: calc.finalRub,
-    contactId: user.amocrmContactId ?? undefined,
-  });
+  // amoCRM: создаём сделку в воронке «Улетная парковка». Не блокируем бронь,
+  // если CRM недоступна/лимит — заявка всё равно сохранится и уйдёт в Telegram.
+  const clientName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.phone;
+  let lead: { id: number } | null = null;
+  try {
+    lead = await createLead({
+      name: `Бронь ${body.data.airport} ${body.data.carNumber} · ${user.phone}`,
+      price: calc.finalRub,
+      contactId: user.amocrmContactId ?? undefined,
+      amo: {
+        airport: body.data.airport,
+        dateFrom: body.data.dateFrom.slice(0, 10),
+        dateTo: body.data.dateTo.slice(0, 10),
+        carNumber: body.data.carNumber,
+        phone: user.phone,
+        clientName,
+      },
+    });
+  } catch (e) {
+    console.warn("[bookings] amoCRM createLead failed:", (e as Error).message);
+  }
 
   const [created] = await db
     .insert(bookings)
     .values({
-      amocrmLeadId: lead.id,
+      amocrmLeadId: lead?.id ?? null,
       userId: user.id,
       airport: body.data.airport,
       dateFrom: new Date(body.data.dateFrom),
@@ -121,7 +136,6 @@ export async function POST(req: Request) {
   };
   Promise.all([
     notifyTelegram(notifyPayload),
-    notifyAmocrm(notifyPayload),
     body.data.email ? notifyClient({ ...notifyPayload, email: body.data.email }) : Promise.resolve({ ok: false }),
   ]).catch(e => console.warn("[bookings] notify failed:", e));
 
