@@ -46,6 +46,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    labels:
+      - autoheal=true          # autoheal перезапустит контейнер при статусе unhealthy
     networks:
       - uletnaya
 
@@ -83,6 +85,20 @@ services:
              crond -f -l 8"
     networks:
       - uletnaya
+
+  # Автолечение: перезапускает контейнеры с меткой autoheal=true при статусе unhealthy
+  # (restart:unless-stopped реагирует только на падение процесса, не на «завис, но жив»).
+  autoheal:
+    image: willfarrell/autoheal:1.2.0
+    container_name: uletnaya-autoheal
+    restart: unless-stopped
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal   # следить за контейнерами с меткой autoheal=true
+      AUTOHEAL_INTERVAL: 10                 # проверка каждые 10 сек
+      AUTOHEAL_START_PERIOD: 30             # грейс-период перед началом мониторинга
+      DOCKER_SOCK: /var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   postgres_data:
