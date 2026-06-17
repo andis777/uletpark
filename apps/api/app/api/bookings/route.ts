@@ -6,7 +6,7 @@ import { getUserFromHeader } from "@/lib/auth";
 import { calculate } from "@/lib/calculator";
 import { createLead } from "@/lib/amocrm";
 import { redeemForBooking } from "@/lib/loyalty";
-import { notifyClient, notifyTelegram } from "@/lib/notify";
+import { notifyClient, notifyTelegram, notifyAmocrm } from "@/lib/notify";
 import type { BookingDTO } from "@uletnaya/shared";
 
 export async function GET(req: Request) {
@@ -115,11 +115,13 @@ export async function POST(req: Request) {
     dateFrom: created.dateFrom.toISOString().slice(0, 10),
     dateTo: created.dateTo.toISOString().slice(0, 10),
     price: calc.finalRub,
+    airport: created.airport,
     carNumber: created.carNumber ?? undefined,
     source: "mobile-app",
   };
   Promise.all([
     notifyTelegram(notifyPayload),
+    notifyAmocrm(notifyPayload),
     body.data.email ? notifyClient({ ...notifyPayload, email: body.data.email }) : Promise.resolve({ ok: false }),
   ]).catch(e => console.warn("[bookings] notify failed:", e));
 

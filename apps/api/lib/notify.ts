@@ -9,6 +9,10 @@ import nodemailer from "nodemailer";
 const TG_BOT = process.env.TELEGRAM_BOT_TOKEN;
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID;
 
+// amoCRM «Неразобранное по почте»: на тарифе без API-записи заявки заводим
+// письмом на спец-адрес воронки «Улетная парковка». Переопределяется через env.
+const AMOCRM_LEAD_EMAIL = process.env.AMOCRM_LEAD_EMAIL || "vsteh+lead@mail.amocrm.ru";
+
 // Дефолт — наш собственный Exim в docker-compose сервисе "mailer:25"
 // (без аутентификации, доверенная сеть внутри docker). Внешний SMTP можно
 // переопределить через env. Когда SMTP_HOST=mailer — auth не используется.
@@ -27,6 +31,7 @@ export interface LeadPayload {
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;
   price?: number | null;
+  airport?: string; // SVO | DME | VKO — для заявки в amoCRM
   carNumber?: string;
   nochevkaHours?: 6 | 12 | 24;
   source?: string; // "web-landing" | "mobile-app" | etc
@@ -90,6 +95,64 @@ function buildTelegramMessage(l: LeadPayload): string {
 <b>Источник:</b> ${l.source ?? "web"}${utm}
 
 ⏰ ${new Date().toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })} МСК`;
+}
+
+/* ---------- amoCRM (через «Неразобранное по почте») ---------- */
+
+/**
+ * Заводит заявку в amoCRM, отправляя письмо на адрес «Неразобранного»
+ * воронки «Улетная парковка». Используется, потому что тариф amoCRM не
+ * даёт записывать через API (POST /leads → «Payment Required»).
+ *
+ * amoCRM парсит письмо: тема → название сделки, телефон из тела → контакт.
+ */
+export async function notifyAmocrm(lead: LeadPayload): Promise<{ ok: boolean; error?: string }> {
+  if (!AMOCRM_LEAD_EMAIL) {
+    console.log("[notify] amoCRM email skip — not configured");
+    return { ok: false, error: "NOT_CONFIGURED" };
+  }
+  const t = getTransporter();
+  if (!t) {
+    console.log("[notify] amoCRM email skip — SMTP not configured");
+    return { ok: false, error: "NO_SMTP" };
+  }
+
+  try {
+    const days = Math.max(1, Math.ceil(
+      (new Date(lead.dateTo).getTime() - new Date(lead.dateFrom).getTime()) / 86400000,
+    ));
+    const service = lead.service === "parking" ? "Парковка" : "Ночёвка";
+    const airport = lead.airport ? ` ${lead.airport}` : "";
+    const subject = `Заявка из приложения: ${service}${airport} — ${lead.name}`;
+
+    // Телефон в теле обязателен и в явном виде — по нему amoCRM создаёт/привязывает контакт.
+    const lines = [
+      `Новая заявка из мобильного приложения «Улётная парковка».`,
+      ``,
+      `Клиент: ${lead.name}`,
+      `Телефон: ${lead.phone}`,
+      `Услуга: ${service}`,
+      lead.airport ? `Аэропорт: ${lead.airport}` : "",
+      `Заезд: ${lead.dateFrom}`,
+      `Выезд: ${lead.dateTo} (${days} ${days === 1 ? "сутки" : "суток"})`,
+      lead.carNumber ? `Гос. номер: ${lead.carNumber}` : "",
+      `Сумма: ${lead.price ? lead.price.toLocaleString("ru") + " ₽" : "—"}`,
+      `Источник: ${lead.source ?? "mobile-app"}`,
+      lead.notes ? `Комментарий: ${lead.notes}` : "",
+    ].filter(Boolean);
+
+    await t.sendMail({
+      from: SMTP_FROM,
+      to: AMOCRM_LEAD_EMAIL,
+      subject,
+      text: lines.join("\n"),
+    });
+    console.log("[notify] amoCRM email ✓ sent to", AMOCRM_LEAD_EMAIL);
+    return { ok: true };
+  } catch (e) {
+    console.warn("[notify] amoCRM email failed:", (e as Error).message);
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 /* ---------- Email ---------- */
