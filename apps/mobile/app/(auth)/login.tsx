@@ -30,7 +30,7 @@ export default function Login() {
       console.log("[login] requestOtp", phone);
       const r = await requestOtp({ phone });
       console.log("[login] response", r);
-      setInfo(r.devCode ? `Тестовый код: ${r.devCode}` : "Код отправлен. В STUB-режиме код: 111111");
+      setInfo(r.devCode ? `Тестовый код: ${r.devCode}` : `Код отправлен по SMS на ${phone}`);
       setStep("code");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
