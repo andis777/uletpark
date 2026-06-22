@@ -65,7 +65,7 @@ export function AppShowcase() {
                     </div>
                     <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>1 — 14 мая</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>М320СО177</div>
-                    <div style={{ fontSize: 16, fontWeight: 300, marginTop: 8, fontFamily: "var(--font-manrope)" }}>1 950 ₽</div>
+                    <div style={{ fontSize: 16, fontWeight: 300, marginTop: 8, fontFamily: "var(--font-manrope)" }}>14 суток</div>
                   </div>
                 </div>
               </div>

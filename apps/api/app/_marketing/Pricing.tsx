@@ -3,25 +3,19 @@ export function Pricing() {
     {
       name: "Короткая",
       days: "1–3 дня",
-      price: 300,
-      saving: null,
       features: ["Трансфер 24/7", "Открытая стоянка", "Охрана", "Видеонаблюдение", "Договор хранения"],
       popular: false,
     },
     {
       name: "Средняя",
       days: "4–14 дней",
-      price: 200,
-      saving: -33,
-      features: ["Всё из тарифа «Короткая»", "Скидка 33% к тарифу", "Зал ожидания с Wi-Fi"],
+      features: ["Всё из тарифа «Короткая»", "Зал ожидания с Wi-Fi"],
       popular: true,
     },
     {
       name: "Длительная",
       days: "от 30 дней",
-      price: 150,
-      saving: -50,
-      features: ["Всё из тарифа «Средняя»", "Крытая стоянка", "Скидка 50% к тарифу", "Бесплатный запуск авто"],
+      features: ["Всё из тарифа «Средняя»", "Крытая стоянка", "Бесплатный запуск авто"],
       popular: false,
     },
   ];
@@ -59,19 +53,10 @@ export function Pricing() {
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)", letterSpacing: 1 }}>{plan.days.toUpperCase()}</div>
                 <h3 style={{ color: "var(--graphite)", fontSize: 26, marginTop: 4 }}>{plan.name}</h3>
               </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-                <span style={{
-                  fontSize: 48, fontWeight: 300, color: "var(--graphite)",
-                  fontFamily: "var(--font-manrope)",
-                }}>{plan.price}</span>
-                <span style={{ color: "var(--text-muted)", fontSize: 14 }}>₽/сутки</span>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 22, fontWeight: 600, color: "var(--graphite)", fontFamily: "var(--font-manrope)" }}>Цена — по сроку поездки</div>
+                <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Рассчитайте точную стоимость в приложении за минуту</div>
               </div>
-              {plan.saving && (
-                <div style={{ color: "var(--success)", fontWeight: 700, fontSize: 13, marginBottom: 20 }}>
-                  💰 Экономия {plan.saving}% от базовой
-                </div>
-              )}
-              {!plan.saving && <div style={{ height: 33 }} />}
               <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "grid", gap: 10 }}>
                 {plan.features.map((f, j) => (
                   <li key={j} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14 }}>

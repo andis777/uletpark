@@ -44,7 +44,7 @@ export function Hero() {
             </h1>
 
             <p style={{ fontSize: 19, lineHeight: 1.5, color: "rgba(255,255,255,0.85)", marginBottom: 32, maxWidth: 540 }}>
-              Бесплатный трансфер 24/7 с первого дня. От 150 ₽/сутки. Договор хранения. <strong style={{ color: "white" }}>Не успели на самолёт — парковка бесплатно.</strong>
+              Бесплатный трансфер 24/7 с первого дня. Договор хранения. <strong style={{ color: "white" }}>Не успели на самолёт — парковка бесплатно.</strong>
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 32 }}>
@@ -52,7 +52,7 @@ export function Hero() {
                 { ico: "🛡", t: "Договор хранения" },
                 { ico: "🚐", t: "Трансфер 24/7" },
                 { ico: "📱", t: "Приложение в RuStore" },
-                { ico: "💰", t: "До 800 ₽ экономии" },
+                { ico: "💰", t: "Экономия на парковке" },
               ].map((b, i) => (
                 <div key={i} style={{
                   display: "inline-flex", alignItems: "center", gap: 8,

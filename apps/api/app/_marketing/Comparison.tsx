@@ -1,6 +1,5 @@
 export function Comparison() {
   const rows = [
-    { label: "Цена за 5 дней", us: "750 ₽ — 1 500 ₽", official: "4 000 ₽", competitor: "1 500 ₽ — 2 500 ₽" },
     { label: "Расстояние до терминала", us: "5 мин трансфером", official: "0 мин (в самом терминале)", competitor: "5–10 мин" },
     { label: "Бесплатный трансфер 24/7", us: "✓ с 1-го дня", official: "—", competitor: "от 4 дней" },
     { label: "Договор хранения", us: "✓", official: "—", competitor: "Не везде" },

@@ -18,7 +18,7 @@ export function FinalCTA() {
           fontSize: 18, color: "rgba(255,255,255,0.75)",
           maxWidth: 600, margin: "0 auto 36px",
         }}>
-          От 150 ₽ за сутки. Трансфер 24/7 бесплатно. Договор хранения. До 2 часов после прилёта — бесплатно.
+          Трансфер 24/7 бесплатно. Договор хранения. До 2 часов после прилёта — бесплатно.
         </p>
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
           <a href="#booking-form" className="btn btn--primary btn--lg">

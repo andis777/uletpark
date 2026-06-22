@@ -58,7 +58,6 @@ export function StructuredData() {
     ],
     url: SITE,
     telephone: PHONE,
-    priceRange: "150–500 ₽/сутки",
     currenciesAccepted: "RUB",
     paymentAccepted: "Cash, Credit Card, Mir, SBP",
     address: {
@@ -114,42 +113,6 @@ export function StructuredData() {
     serviceType: "Парковка у аэропорта Шереметьево с трансфером",
     provider: { "@id": `${SITE}#parkingfacility` },
     areaServed: { "@type": "Airport", name: "Шереметьево", iataCode: "SVO" },
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "RUB",
-      lowPrice: "150",
-      highPrice: "300",
-      offerCount: "3",
-      offers: [
-        {
-          "@type": "Offer",
-          name: "Тариф «Короткая» — 1–3 дня",
-          price: "300",
-          priceCurrency: "RUB",
-          availability: "https://schema.org/InStock",
-          url: `${SITE}/landing#pricing`,
-          description: "Открытая стоянка, трансфер 24/7, охрана, видеонаблюдение, договор хранения",
-        },
-        {
-          "@type": "Offer",
-          name: "Тариф «Средняя» — 4–14 дней",
-          price: "200",
-          priceCurrency: "RUB",
-          availability: "https://schema.org/InStock",
-          url: `${SITE}/landing#pricing`,
-          description: "Скидка 33% к базовой цене + зал ожидания с Wi-Fi",
-        },
-        {
-          "@type": "Offer",
-          name: "Тариф «Длительная» — от 30 дней",
-          price: "150",
-          priceCurrency: "RUB",
-          availability: "https://schema.org/InStock",
-          url: `${SITE}/landing#pricing`,
-          description: "Крытая стоянка, скидка 50% к базовой, бесплатный запуск авто",
-        },
-      ],
-    },
   };
 
   const faq = {
