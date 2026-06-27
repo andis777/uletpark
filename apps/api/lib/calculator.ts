@@ -6,10 +6,9 @@
  * ПАРКОВКА:
  *   V = (dateTo - dateFrom) в сутках (=количество ночёвок)
  *   Всего дней = V + 1
- *   Цена:
- *     если V == 1 или V == 2 → 900 ₽ (акция short-stay из JS-override uCalc)
- *     если V == 3            → 1400 ₽ (uCalc минимум для V<4)
- *     иначе (V >= 4)         → V × 350 + 350
+ *   Цена (сверено с живой формой uCalc и 120 сделками amoCRM):
+ *     если V <= 3   → 1400 ₽ (минимум; короткие поездки по 1400, тарифа 900 нет)
+ *     иначе (V >= 4) → V × 350 + 350
  *
  * НОЧЁВКА:
  *   V = (dateTo - dateFrom) в сутках
@@ -30,8 +29,7 @@ const NOCHEVKA_BLOCK_RUB = {
 const NOCHEVKA_DAILY_RUB = 1200;
 const PARKING_DAILY_RUB = 350;
 const PARKING_FIXED_FEE_RUB = 350;
-const PARKING_MIN_RUB = 1400;            // V == 3
-const PARKING_SHORT_STAY_RUB = 900;       // V == 1 || V == 2 (акция)
+const PARKING_MIN_RUB = 1400;            // V <= 3 (минимум)
 const PARKING_MIN_THRESHOLD_NIGHTS = 4;
 
 const POINT_TO_RUB = 1;
@@ -63,14 +61,12 @@ export function calculate(req: ExtendedCalcRequest): CalculatorResponse {
     days = Math.max(1, V); // "Всего дней" = V
     pricePerDayRub = NOCHEVKA_DAILY_RUB;
   } else {
-    // ПАРКОВКА по uCalc (с JS-override акции для коротких поездок)
-    if (V === 1 || V === 2) {
-      totalRub = PARKING_SHORT_STAY_RUB;
-    } else if (V < PARKING_MIN_THRESHOLD_NIGHTS) {
-      // V == 3 — uCalc минимум
+    // ПАРКОВКА по uCalc
+    if (V < PARKING_MIN_THRESHOLD_NIGHTS) {
+      // V <= 3 — минимум 1400 ₽ (1–3 ночи; сверено с живой формой и amoCRM)
       totalRub = PARKING_MIN_RUB;
     } else {
-      // V >= 4 — uCalc формула V × 350 + 350
+      // V >= 4 — формула uCalc V × 350 + 350
       totalRub = V * PARKING_DAILY_RUB + PARKING_FIXED_FEE_RUB;
     }
     days = V + 1; // "Всего дней" = V + 1
