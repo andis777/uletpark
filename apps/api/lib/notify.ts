@@ -5,9 +5,14 @@
  */
 
 import nodemailer from "nodemailer";
+import { sendSms } from "./sms";
 
 const TG_BOT = process.env.TELEGRAM_BOT_TOKEN;
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID;
+
+// Короткая ссылка на место парковки (точка на Яндекс.Картах). Из uCalc-шаблона
+// клиентской SMS; переопределяется через env.
+const PARKING_MAP_LINK = process.env.PARKING_MAP_LINK || "https://clck.ru/3D2m7Y";
 
 // amoCRM «Неразобранное по почте»: на тарифе без API-записи заявки заводим
 // письмом на спец-адрес воронки «Улетная парковка». Переопределяется через env.
@@ -287,6 +292,37 @@ export async function notifyClient(lead: LeadPayload & { email?: string }): Prom
     return { ok: true };
   } catch (e) {
     console.warn("[notify] Client email failed:", (e as Error).message);
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+/* ---------- SMS клиенту (SMS.ru) ---------- */
+
+/**
+ * SMS-подтверждение клиенту после заявки — повторяет userSmsTemplate из uCalc:
+ * период брони, сумма и ссылка на место парковки. Телефон обязателен (есть всегда).
+ * Если SMS.ru не сконфигурирован — sendSms сам уходит в stub (console.log).
+ */
+export async function notifyClientSms(lead: LeadPayload): Promise<{ ok: boolean; error?: string }> {
+  if (!lead.phone) return { ok: false, error: "NO_PHONE" };
+  try {
+    const days = Math.max(1, Math.ceil(
+      (new Date(lead.dateTo).getTime() - new Date(lead.dateFrom).getTime()) / 86400000,
+    ));
+    const priceStr = lead.price ? `, итого ${lead.price.toLocaleString("ru")} ₽` : "";
+    const dmy = (iso: string) => iso.slice(0, 10).split("-").reverse().join("."); // YYYY-MM-DD → DD.MM.YYYY
+    const text =
+      `Улётная парковка: ${dmy(lead.dateFrom)}–${dmy(lead.dateTo)} (${days} ${days === 1 ? "сутки" : "суток"})${priceStr}. `
+      + `Как доехать: ${PARKING_MAP_LINK}`;
+    const r = await sendSms(lead.phone, text);
+    if (!r.success) {
+      console.warn("[notify] Client SMS failed:", r.error);
+      return { ok: false, error: r.error };
+    }
+    console.log("[notify] Client SMS ✓ sent to", lead.phone);
+    return { ok: true };
+  } catch (e) {
+    console.warn("[notify] Client SMS failed:", (e as Error).message);
     return { ok: false, error: (e as Error).message };
   }
 }

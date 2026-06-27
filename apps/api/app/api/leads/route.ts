@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createLead, findOrCreateContactByPhone } from "@/lib/amocrm";
-import { notifyTelegram, notifyEmail, notifyClient, type LeadPayload } from "@/lib/notify";
+import { notifyTelegram, notifyEmail, notifyClient, notifyClientSms, type LeadPayload } from "@/lib/notify";
 import { calculate } from "@/lib/calculator";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -106,11 +106,12 @@ export async function POST(req: Request) {
     console.warn("[leads] amoCRM failed:", (e as Error).message);
   }
 
-  // 2-4) Telegram + Email менеджеру + Email клиенту — параллельно
-  const [tg, mail, clientMail] = await Promise.all([
+  // 2-5) Telegram + Email менеджеру + Email клиенту + SMS клиенту — параллельно
+  const [tg, mail, clientMail, clientSms] = await Promise.all([
     notifyTelegram(leadPayload),
     notifyEmail(leadPayload),
     notifyClient({ ...leadPayload, email: data.email }),
+    notifyClientSms(leadPayload),
   ]);
 
   return NextResponse.json({
@@ -121,6 +122,7 @@ export async function POST(req: Request) {
       telegram: tg.ok ? "sent" : tg.error,
       email: mail.ok ? "sent" : mail.error,
       clientEmail: clientMail.ok ? "sent" : clientMail.error,
+      clientSms: clientSms.ok ? "sent" : clientSms.error,
     },
     price,
   });
