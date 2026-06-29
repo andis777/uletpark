@@ -78,10 +78,21 @@ export async function notifyTelegram(lead: LeadPayload): Promise<{ ok: boolean; 
   }
 }
 
-function buildTelegramMessage(l: LeadPayload): string {
-  const days = Math.max(1, Math.ceil(
+/**
+ * «Всего суток» для уведомлений. Парковка считается ВКЛЮЧИТЕЛЬНО (V+1) — как в
+ * калькуляторе (calculator.ts) и в цене (машина стоит дни заезда и выезда).
+ * Ночёвка = V. Раньше тут был ceil(разница)=V → письмо показывало на 1 меньше цены.
+ */
+function stayDays(l: { dateFrom: string; dateTo: string; service?: string }): number {
+  const V = Math.floor(
     (new Date(l.dateTo).getTime() - new Date(l.dateFrom).getTime()) / 86400000,
-  ));
+  );
+  if (!Number.isFinite(V)) return 1;
+  return l.service === "nochevka" ? Math.max(1, V) : Math.max(1, V + 1);
+}
+
+function buildTelegramMessage(l: LeadPayload): string {
+  const days = stayDays(l);
   const tariff = l.nochevkaHours ? ` (тариф ${l.nochevkaHours} ч)` : "";
   const service = l.service === "parking" ? "🅿️ Парковка" : `🛏️ Ночёвка${tariff}`;
   const utm = l.utm && Object.keys(l.utm).length
@@ -123,9 +134,7 @@ export async function notifyAmocrm(lead: LeadPayload): Promise<{ ok: boolean; er
   }
 
   try {
-    const days = Math.max(1, Math.ceil(
-      (new Date(lead.dateTo).getTime() - new Date(lead.dateFrom).getTime()) / 86400000,
-    ));
+    const days = stayDays(lead);
     const service = lead.service === "parking" ? "Парковка" : "Ночёвка";
     const airport = lead.airport ? ` ${lead.airport}` : "";
     const subject = `Заявка из приложения: ${service}${airport} — ${lead.name}`;
@@ -191,9 +200,7 @@ export async function notifyEmail(lead: LeadPayload): Promise<{ ok: boolean; err
   }
 
   try {
-    const days = Math.max(1, Math.ceil(
-      (new Date(lead.dateTo).getTime() - new Date(lead.dateFrom).getTime()) / 86400000,
-    ));
+    const days = stayDays(lead);
     const service = lead.service === "parking" ? "Парковка" : "Ночёвка";
 
     await t.sendMail({
@@ -236,9 +243,7 @@ export async function notifyClient(lead: LeadPayload & { email?: string }): Prom
   if (!t) return { ok: false, error: "NOT_CONFIGURED" };
 
   try {
-    const days = Math.max(1, Math.ceil(
-      (new Date(lead.dateTo).getTime() - new Date(lead.dateFrom).getTime()) / 86400000,
-    ));
+    const days = stayDays(lead);
     const service = lead.service === "parking" ? "Парковка у Шереметьево" : "Улётная Ночёвка";
     const tariff = lead.nochevkaHours ? ` (тариф ${lead.nochevkaHours} ч)` : "";
 
@@ -306,9 +311,7 @@ export async function notifyClient(lead: LeadPayload & { email?: string }): Prom
 export async function notifyClientSms(lead: LeadPayload): Promise<{ ok: boolean; error?: string }> {
   if (!lead.phone) return { ok: false, error: "NO_PHONE" };
   try {
-    const days = Math.max(1, Math.ceil(
-      (new Date(lead.dateTo).getTime() - new Date(lead.dateFrom).getTime()) / 86400000,
-    ));
+    const days = stayDays(lead);
     const priceStr = lead.price ? `, итого ${lead.price.toLocaleString("ru")} ₽` : "";
     const dmy = (iso: string) => iso.slice(0, 10).split("-").reverse().join("."); // YYYY-MM-DD → DD.MM.YYYY
     const text =
