@@ -126,7 +126,7 @@ export default async function DriverDashboard({ searchParams }: PageProps) {
                         🚗 {b.carNumber || "—"} {b.carModel ? `· ${b.carModel}` : ""}
                       </div>
                       <div style={{ fontSize: 12, color: "#8a8f9f", marginTop: 2 }}>
-                        {b.airport} · до {new Date(b.dateTo).toLocaleDateString("ru")} · {b.priceRub} ₽
+                        {b.airport} · до {new Date(b.dateTo).toLocaleDateString("ru")} · {Math.round((b.priceKopecks ?? 0) / 100)} ₽
                       </div>
                     </div>
                     <a href={`/admin/bookings/${b.id}`} style={btnSecSm}>→</a>

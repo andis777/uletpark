@@ -29,11 +29,10 @@ export default async function FinanceDashboard({ searchParams }: PageProps) {
     .select({
       id: bookings.id,
       status: bookings.status,
-      priceRub: bookings.priceRub,
+      priceKopecks: bookings.priceKopecks,
       dateFrom: bookings.dateFrom,
       dateTo: bookings.dateTo,
       source: bookings.source,
-      service: bookings.service,
     })
     .from(bookings)
     .where(and(
@@ -47,8 +46,8 @@ export default async function FinanceDashboard({ searchParams }: PageProps) {
   const completedCount = rows.filter(r => r.status === "completed").length;
   const activeCount = rows.filter(r => ["new", "confirmed", "active"].includes(r.status)).length;
 
-  const grossRub = rows.filter(r => r.status !== "cancelled").reduce((s, r) => s + (r.priceRub ?? 0), 0);
-  const completedRub = rows.filter(r => r.status === "completed").reduce((s, r) => s + (r.priceRub ?? 0), 0);
+  const grossRub = rows.filter(r => r.status !== "cancelled").reduce((s, r) => s + Math.round((r.priceKopecks ?? 0) / 100), 0);
+  const completedRub = rows.filter(r => r.status === "completed").reduce((s, r) => s + Math.round((r.priceKopecks ?? 0) / 100), 0);
   const avgCheck = totalCount > 0 ? Math.round(grossRub / Math.max(1, totalCount - cancelledCount)) : 0;
   const cancelRate = totalCount > 0 ? Math.round((cancelledCount / totalCount) * 100) : 0;
 
@@ -59,7 +58,7 @@ export default async function FinanceDashboard({ searchParams }: PageProps) {
     const day = new Date(r.dateFrom).toISOString().slice(0, 10);
     const cur = byDay.get(day) ?? { count: 0, sum: 0 };
     cur.count += 1;
-    cur.sum += r.priceRub ?? 0;
+    cur.sum += Math.round((r.priceKopecks ?? 0) / 100);
     byDay.set(day, cur);
   }
   const days = Array.from(byDay.entries()).sort();
@@ -68,7 +67,7 @@ export default async function FinanceDashboard({ searchParams }: PageProps) {
   const bySource = new Map<string, number>();
   for (const r of rows) {
     if (r.status === "cancelled") continue;
-    bySource.set(r.source ?? "unknown", (bySource.get(r.source ?? "unknown") ?? 0) + (r.priceRub ?? 0));
+    bySource.set(r.source ?? "unknown", (bySource.get(r.source ?? "unknown") ?? 0) + Math.round((r.priceKopecks ?? 0) / 100));
   }
 
   const maxDaySum = Math.max(1, ...days.map(([, v]) => v.sum));

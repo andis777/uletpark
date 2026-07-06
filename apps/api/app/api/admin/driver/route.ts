@@ -35,7 +35,7 @@ export async function GET(req: Request) {
       status: bookings.status,
       userId: bookings.userId,
       notes: bookings.notes,
-      priceRub: bookings.priceRub,
+      priceKopecks: bookings.priceKopecks,
     })
     .from(bookings)
     .where(and(
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
       status: bookings.status,
       userId: bookings.userId,
       notes: bookings.notes,
-      priceRub: bookings.priceRub,
+      priceKopecks: bookings.priceKopecks,
     })
     .from(bookings)
     .where(and(
@@ -87,8 +87,9 @@ export async function GET(req: Request) {
   }
 
   function enrich(rows: typeof pickups) {
-    return rows.map(r => ({
+    return rows.map(({ priceKopecks, ...r }) => ({
       ...r,
+      priceRub: Math.round((priceKopecks ?? 0) / 100),
       client: r.userId ? usersMap.get(r.userId) ?? null : null,
     }));
   }
