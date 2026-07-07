@@ -132,10 +132,13 @@ export async function syncFromPipeline(opts: {
   // Воронка «Улетная парковка» = 7000398 (сделки создаются там через v2/hash-режим).
   // РАНЬШЕ: findPipelineId(name) шёл через v4-discovery (OAuth) и промахивался на воронку 1
   // → iterateLeads тянул пустую воронку → в БД 0 заявок → «0» в дневном отчёте. Берём ID напрямую.
-  let pipelineId: number | null = Number(process.env.AMOCRM_PIPELINE_ID || 7000398);
-  if (opts.pipelineName) {
-    const discovered = await findPipelineId(opts.pipelineName).catch(() => null);
-    if (discovered) pipelineId = discovered;
+  const configured = Number(process.env.AMOCRM_PIPELINE_ID || 7000398);
+  let pipelineId: number | null = configured;
+  // Discovery через findPipelineId (v4/stub) промахивался на воронку 1 — используем его ТОЛЬКО
+  // как фолбэк при НЕсконфигурированном ID и игнорируем явно неверный результат (<=1).
+  if (!configured) {
+    const discovered = await findPipelineId(pipelineName).catch(() => null);
+    if (discovered && discovered > 1) pipelineId = discovered;
   }
 
   if (!pipelineId && !amocrmInfo.isStub) {
