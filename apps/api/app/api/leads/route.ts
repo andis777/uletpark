@@ -4,6 +4,7 @@ import { createLead, findOrCreateContactByPhone } from "@/lib/amocrm";
 import { notifyTelegram, notifyEmail, notifyClient, notifyClientSms, type LeadPayload } from "@/lib/notify";
 import { calculate } from "@/lib/calculator";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { db, bookings } from "@/lib/db";
 
 /**
  * POST /api/leads — приём заявок с лендинга.
@@ -104,6 +105,26 @@ export async function POST(req: Request) {
     console.log(`[leads] amoCRM lead created: ${amocrmLeadId}`);
   } catch (e) {
     console.warn("[leads] amoCRM failed:", (e as Error).message);
+  }
+
+  // 1b) Пишем заявку в БД → своя админка (и веб, и app). userId null для анонимных лидов.
+  try {
+    const src = /app|ios|android/i.test(data.source ?? "") ? "app" : "website";
+    await db.insert(bookings).values({
+      amocrmLeadId: amocrmLeadId ?? null,
+      airport: data.airport,
+      dateFrom: new Date(fromIso),
+      dateTo: new Date(toIso),
+      priceKopecks: Math.round((price ?? 0) * 100),
+      source: src as "app" | "website",
+      name: data.name,
+      phone,
+      carNumber: data.carNumber ?? null,
+      notes: data.notes ?? null,
+    }).onConflictDoNothing({ target: bookings.amocrmLeadId });
+    console.log(`[leads] booking saved to DB (${data.name} ${phone})`);
+  } catch (e) {
+    console.warn("[leads] booking insert failed:", (e as Error).message);
   }
 
   // 2-5) Telegram + Email менеджеру + Email клиенту + SMS клиенту — параллельно

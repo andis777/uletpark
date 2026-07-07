@@ -99,6 +99,8 @@ export const bookings = pgTable(
     source: bookingSourceEnum("source").default("app").notNull(),
     rawAmocrm: jsonb("raw_amocrm"),                          // полная копия для отладки
     notes: text("notes"),
+    name: text("name"),                                      // имя из заявки (веб/app) — для показа в админке, в т.ч. без userId
+    phone: text("phone"),                                    // телефон из заявки (анонимные лиды без user)
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

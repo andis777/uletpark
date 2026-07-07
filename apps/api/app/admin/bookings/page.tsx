@@ -24,6 +24,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
     like(bookings.carModel, `%${sp.q}%`),
     like(users.phone, `%${sp.q}%`),
     like(users.firstName, `%${sp.q}%`),
+    like(bookings.phone, `%${sp.q}%`),
+    like(bookings.name, `%${sp.q}%`),
   ));
   if (sp.status) conds.push(eq(bookings.status, sp.status as "new"));
   if (sp.airport) conds.push(eq(bookings.airport, sp.airport as "SVO"));
@@ -36,6 +38,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       priceKopecks: bookings.priceKopecks, status: bookings.status,
       carNumber: bookings.carNumber, source: bookings.source,
       createdAt: bookings.createdAt, amocrmLeadId: bookings.amocrmLeadId,
+      leadName: bookings.name, leadPhone: bookings.phone,
       userPhone: users.phone, userFirstName: users.firstName, userId: users.id,
     })
     .from(bookings)
@@ -88,7 +91,9 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                   <Link href={`/admin/users/${r.userId}`} style={linkStyle}>
                     {r.userFirstName ?? "—"} <span style={{ color: "#8a8580" }}>{r.userPhone ?? ""}</span>
                   </Link>
-                ) : <span style={{ color: "#8a8580" }}>—</span>}
+                ) : (
+                  <span>{r.leadName ?? "—"} <span style={{ color: "#8a8580" }}>{r.leadPhone ?? ""}</span></span>
+                )}
               </td>
               <td style={td}><Link href={`/admin/bookings/${r.id}`} style={linkStyle}>{r.airport}</Link></td>
               <td style={td}>{r.dateFrom.toLocaleDateString("ru")} → {r.dateTo.toLocaleDateString("ru")}</td>
