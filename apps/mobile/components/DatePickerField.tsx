@@ -24,11 +24,12 @@ export function DatePickerField({ value, onChange, minimumDate, label }: Props) 
     return (
       <View>
         {label && <Text style={s.label}>{label}</Text>}
-        {/* @ts-expect-error react-native-web прокидывает type/min */}
         <input
           type="date"
           value={value.toISOString().slice(0, 10)}
           min={minimumDate?.toISOString().slice(0, 10)}
+          // Открываем календарь по клику в любом месте поля, а не только по иконке
+          onClick={(e: any) => { try { e.target.showPicker?.(); } catch { /* нужен user gesture */ } }}
           onChange={(e: any) => {
             const v = e.target.value;
             if (!v) return;

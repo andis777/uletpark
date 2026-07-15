@@ -35,13 +35,12 @@ export function RouteMapModal({ visible, onClose }: Props) {
 
           {/* На вебе — iframe с картой; на native — статическое изображение карты Я.Статикмап */}
           {Platform.OS === "web" ? (
-            // @ts-expect-error iframe для web fallback
             <iframe
               title="Карта парковки"
               src={`https://yandex.ru/map-widget/v1/?ll=${LON}%2C${LAT}&z=15&pt=${LON},${LAT},pm2rdl&l=map`}
               style={{
                 width: "100%", height: 320, border: 0,
-                borderRadius: 12, marginVertical: 16,
+                borderRadius: 12, marginTop: 16, marginBottom: 16,
               }}
             />
           ) : (
