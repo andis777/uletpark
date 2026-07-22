@@ -8,14 +8,14 @@
 # =========================================================================
 name: Deploy API
 
+# ВНИМАНИЕ: автозапуск по push ОТКЛЮЧЁН 22.07.2026.
+# Причина: self-hosted runner (5065331-st93568) собирает и поднимает контейнеры
+# У СЕБЯ, а публичный api.uletnayaparkovka.ru обслуживает другой сервер.
+# Из-за этого workflow годами показывал ✓, ничего не выкатывая на прод
+# (smoke-тест дёргал публичный URL, живой и без деплоя).
+# Боевая выкатка теперь: ./deploy/scripts/deploy-to-prod.sh
+# Вернуть push-триггер можно, когда деплой начнёт доезжать до прод-сервера.
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "apps/mobile/**"
-      - ".github/workflows/build-mobile*.yml"
   workflow_dispatch:
 
 concurrency:
@@ -37,16 +37,39 @@ jobs:
       - name: Run deploy script
         run: sudo /usr/local/bin/uletnaya-deploy.sh
 
-      - name: Smoke test public API
+      # ВАЖНО: проверяем не «жив ли публичный URL» (он жив и без деплоя — это давало
+      # ложно-зелёный CI), а что публичный API реально отдаёт ИМЕННО этот коммит.
+      - name: Smoke test public API (verify deployed commit)
         run: |
+          URL=https://api.uletnayaparkovka.ru/api/health
+          EXPECTED='${{ github.sha }}'
+          body=''
           for i in 1 2 3 4 5; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 http://api.uletnayaparkovka.ru/api/health || echo 000)
+            body=$(curl -s --max-time 8 "$URL" || echo '')
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 "$URL" || echo 000)
             echo "attempt $i: HTTP $code"
-            [ "$code" = "200" ] && exit 0
+            [ "$code" = "200" ] && break
             sleep 4
           done
-          echo "public API health failed"
-          exit 1
+          if [ "$code" != "200" ]; then
+            echo "::error::Публичный API не отвечает (HTTP $code)"
+            exit 1
+          fi
+          echo "health: $body"
+          deployed=$(printf '%s' "$body" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')
+          if [ -z "$deployed" ] || [ "$deployed" = "unknown" ]; then
+            echo "::error::Публичный API не сообщает commit (получено: '${deployed:-нет поля}')."
+            echo "::error::Значит на проде образ без APP_COMMIT — выкатка до него не доехала."
+            exit 1
+          fi
+          if [ "$deployed" != "$EXPECTED" ]; then
+            echo "::error::Прод отдаёт другой коммит!"
+            echo "::error::  ожидали (этот пуш): $EXPECTED"
+            echo "::error::  реально на проде:   $deployed"
+            echo "::error::Деплой прошёл не на тот хост, что обслуживает api.uletnayaparkovka.ru."
+            exit 1
+          fi
+          echo "✓ Прод действительно обновлён до $deployed"
 
   notify:
     runs-on: ubuntu-latest

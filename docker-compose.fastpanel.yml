@@ -37,6 +37,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        APP_COMMIT: ${APP_COMMIT:-unknown}
     image: uletnaya/api:local
     container_name: uletnaya-api
     restart: unless-stopped

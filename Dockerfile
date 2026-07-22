@@ -47,6 +47,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# Коммит, из которого собран образ — отдаётся в /api/health.
+# Нужен, чтобы smoke-тест в CI мог отличить «выкачено» от «просто живо».
+ARG APP_COMMIT=unknown
+ENV APP_COMMIT=$APP_COMMIT
+
 # Non-root user
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 

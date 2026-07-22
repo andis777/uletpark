@@ -16,5 +16,8 @@ export async function GET() {
     db: dbStatus,
     amocrm: amocrmInfo.isStub ? "stub" : "live",
     domain: amocrmInfo.domain || null,
+    // Коммит собранного образа (ARG APP_COMMIT в Dockerfile).
+    // По нему smoke-тест в CI проверяет, что выкатили именно этот код.
+    commit: process.env.APP_COMMIT || "unknown",
   });
 }
