@@ -23,3 +23,12 @@ drizzle/
 # (root-пароль сервера, TG-токен, deploy-секрет). НЕ коммитить в публичный репо
 # до выноса секретов в env. См. ssh_setup.py, auto_pipeline/php/*.php
 seo-deploy/
+.gstack/
+
+# Сборочный артефакт мобильного приложения (62 МБ) — не в публичный репо
+apps/mobile/*.apk
+# App Store Connect: KEY_ID/ISSUER_ID + читает AuthKey_*.p8 — держим вне публичного репо
+apps/mobile/promote-asc.mjs
+AuthKey_*.p8
+# Личные настройки агента (пути к ключам)
+.claude/settings.local.json

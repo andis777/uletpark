@@ -1,0 +1,23 @@
+# =========================================================================
+# Local override: явная подсеть + публикация портов для локального тестирования.
+# Запуск:
+#   docker compose -f docker-compose.fastpanel.yml -f docker-compose.local.yml --env-file .env.production up -d
+# =========================================================================
+
+services:
+  postgres:
+    # Полная замена ports (родительский 127.0.0.1:5432 занят) — нам не нужен наружу
+    ports: !override []
+
+  api:
+    # Публикуем API на 7982 без bind адреса (доступен с любых IP в docker-сети)
+    ports: !override
+      - "7982:3000"
+
+networks:
+  uletnaya:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.250.255.0/24
+          gateway: 10.250.255.1
