@@ -67,8 +67,11 @@ echo "==> Стримим образ на сервер (~220 МБ)..."
 docker save "$IMAGE" | gzip -1 | remote_stdin "gunzip | docker load"
 
 # --- 3) Пересоздаём контейнер ---
+# ВАЖНО: --env-file .env.production ОБЯЗАТЕЛЕН. На сервере нет .env, а POSTGRES_PASSWORD
+# и DATABASE_URL собираются интерполяцией compose (${POSTGRES_PASSWORD}). Без env-файла
+# пароль подставится пустым → api не подключится к БД (db:down), а postgres пересоздастся.
 echo "==> Поднимаем api..."
-remote "cd $REMOTE_DIR && docker compose -f $COMPOSE_FILE up -d api"
+remote "cd $REMOTE_DIR && docker compose --env-file .env.production -f $COMPOSE_FILE up -d api"
 
 # --- 4) Проверка: сервис жив И отдаёт ИМЕННО этот коммит ---
 echo "==> Проверка health..."
