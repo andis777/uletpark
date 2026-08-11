@@ -134,3 +134,45 @@ export const applyReferral = (code: string) =>
 /* --- Analytics --- */
 export const sendEvent = (e: EventPayload) =>
   call<{ ok: true }>("/api/events", { method: "POST", body: JSON.stringify(e) }).catch(() => {});
+
+/* --- Зеркалим бронь из приложения в WP lead-receiver.php ---
+   Без этого заявки из приложения не попадают в группу MAX / лог заявок
+   (сайт шлёт туда, приложение — только в VPS API). Помечаем source:'app',
+   чтобы в MAX строкой «Откуда» было видно «📲 Приложение». Fire-and-forget. */
+const WP_LEAD_URL = "https://uletnayaparkovka.ru/lead-receiver.php";
+export async function notifyWebLead(lead: {
+  dateFrom: string;
+  dateTo: string;
+  price?: number | string;
+  email?: string;
+  name?: string;
+  phone?: string;
+  page?: string;
+}): Promise<void> {
+  try {
+    let phone = lead.phone;
+    let name = lead.name;
+    if (!phone) {
+      try {
+        const me = await getMe();
+        phone = me.user.phone;
+        if (!name) name = [me.user.firstName, me.user.lastName].filter(Boolean).join(" ") || undefined;
+      } catch { /* профиль недоступен — пропускаем */ }
+    }
+    if (!phone) return; // без телефона lead-receiver не отправит уведомление в MAX
+    await fetch(WP_LEAD_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phone,
+        name: name ?? "",
+        dateFrom: lead.dateFrom,
+        dateTo: lead.dateTo,
+        price: lead.price != null ? String(lead.price) : "",
+        email: lead.email ?? "",
+        source: "app",
+        page: lead.page ?? "app",
+      }),
+    });
+  } catch { /* fire-and-forget: не мешаем основному потоку бронирования */ }
+}

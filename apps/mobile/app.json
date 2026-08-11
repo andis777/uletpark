@@ -4,6 +4,12 @@
     "slug": "uletnaya-parkovka",
     "scheme": "uletnaya",
     "version": "1.2.1",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6efb0108-5626-49b8-8ace-f852d3b292ad"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

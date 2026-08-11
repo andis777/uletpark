@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { ScrollView, Text, View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { previewCalc, createBooking, getLoyalty } from "@/lib/api";
+import { previewCalc, createBooking, getLoyalty, notifyWebLead } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -71,6 +71,14 @@ export default function ParkingWizard() {
     }),
     onSuccess: (r) => {
       analytics.bookingCreated({ airport: AIRPORT, days: calc?.days ?? 0, priceRub: r.booking.priceRub });
+      // Зеркалим заявку в MAX/лог как заявку из приложения (fire-and-forget, не блокирует UI)
+      void notifyWebLead({
+        dateFrom: formatDateInput(dateFrom),
+        dateTo: formatDateInput(dateTo),
+        price: r.booking.priceRub,
+        email: email.trim() || undefined,
+        page: "app/booking/parking",
+      });
       setCreatedBookingId(r.booking.id);
       setCreatedPrice(r.booking.priceRub);
       setCreatedName(carNumber.trim().toUpperCase() || "клиент");

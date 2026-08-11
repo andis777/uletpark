@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ScrollView, Text, View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
-import { createBooking } from "@/lib/api";
+import { createBooking, notifyWebLead } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -51,6 +51,14 @@ export default function NochevkaWizard() {
     }),
     onSuccess: (r) => {
       analytics.bookingCreated({ airport: "SVO", days: 1, priceRub: tariff.price });
+      // Зеркалим заявку в MAX/лог как заявку из приложения (fire-and-forget)
+      void notifyWebLead({
+        dateFrom: formatDateInput(dateFrom),
+        dateTo: formatDateInput(dateTo),
+        price: tariff.price,
+        email: email.trim() || undefined,
+        page: "app/booking/nochevka",
+      });
       setCreatedBookingId(r.booking.id);
       setSuccessOpen(true);
     },
