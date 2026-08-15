@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import Constants from "expo-constants";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
-import { requestCode, verifyCode, loginWithYandex, setTokens } from "@/lib/api";
+import { requestCode, verifyCode, loginWithYandex, requestOtp, verifyOtp, setTokens, ApiError } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 
@@ -86,12 +86,31 @@ export default function Login() {
     return mode === "email" ? { email: email.trim() } : { phone };
   }
 
+  /**
+   * Приложение может выйти в сторы раньше, чем задеплоят новый API.
+   * Тогда /auth/request-code ответит 404 — молча уходим на старый SMS-вход,
+   * чтобы люди не остались без возможности войти. Порядок выкатки перестаёт быть важен.
+   */
+  const isMissingEndpoint = (e: unknown) => e instanceof ApiError && e.status === 404;
+
   async function onRequest() {
     setErr(null);
     setInfo(null);
     setBusy(true);
     try {
-      const r = await requestCode(target());
+      let r: { devCode?: string };
+      try {
+        r = await requestCode(target());
+      } catch (e) {
+        if (!isMissingEndpoint(e)) throw e;
+        if (mode === "email") {
+          // Старый сервер почту не умеет — честно предлагаем телефон.
+          setMode("phone");
+          setErr("Вход по почте скоро появится. Пока войдите по номеру телефона.");
+          return;
+        }
+        r = await requestOtp({ phone });
+      }
       setInfo(
         r.devCode
           ? `Тестовый код: ${r.devCode}`
@@ -119,7 +138,14 @@ export default function Login() {
     setErr(null);
     setBusy(true);
     try {
-      const r = await verifyCode({ ...target(), code });
+      let r: { accessToken: string; refreshToken: string };
+      try {
+        r = await verifyCode({ ...target(), code });
+      } catch (e) {
+        // Старый API: подтверждаем код прежней ручкой (только телефон).
+        if (!isMissingEndpoint(e) || mode !== "phone") throw e;
+        r = await verifyOtp({ phone, code });
+      }
       await setTokens({ accessToken: r.accessToken, refreshToken: r.refreshToken });
       router.replace("/(tabs)");
     } catch (e) {

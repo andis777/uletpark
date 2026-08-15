@@ -31,7 +31,7 @@ export async function isAuthed(): Promise<boolean> {
   return !!t;
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(public status: number, public code: string, msg?: string) { super(msg ?? code); }
 }
 
