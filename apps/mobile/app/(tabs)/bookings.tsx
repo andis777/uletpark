@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ScrollView, Text, View, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl } from "react-native";
 import { router } from "expo-router";
 import { listBookings, syncMyBookings } from "@/lib/api";
+import { openYandexReviews, reviewLabel } from "@/lib/reviews";
 import { colors, typography, radii, spacing } from "@/lib/theme";
 import { Card } from "@/components/Card";
 import { Pill } from "@/components/Pill";
@@ -143,6 +144,15 @@ export default function Bookings() {
                   <Text style={s.bonusDone}>+{b.loyaltyPointsEarned} начислено</Text>
                 )}
               </View>
+
+              {/* Отзыв на Яндекс.Картах. Своё касание — не открывает карточку брони. */}
+              <TouchableOpacity
+                onPress={openYandexReviews}
+                style={s.reviewBtn}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Text style={s.reviewTxt}>{reviewLabel(b.status)}</Text>
+              </TouchableOpacity>
             </Card>
           );
         })}
@@ -235,6 +245,15 @@ const s = StyleSheet.create({
   price: { color: colors.textPrimary, fontSize: 22, fontWeight: "300", fontFamily: typography.displaySm.fontFamily },
   bonus: { color: colors.primary, fontSize: 12, fontWeight: "700" },
   bonusDone: { color: colors.success, fontSize: 12, fontWeight: "600" },
+
+  reviewBtn: {
+    marginTop: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radii.md,
+    backgroundColor: colors.warningBg,
+    alignItems: "center",
+  },
+  reviewTxt: { color: colors.warning, fontSize: 12, fontWeight: "700", letterSpacing: 0.2 },
 
   err: { color: colors.danger, marginTop: 24, textAlign: "center" },
 

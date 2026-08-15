@@ -15,6 +15,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Pill } from "@/components/Pill";
 import { confirmAction, notify } from "@/lib/ui";
+import { openYandexReviews, hasStayed } from "@/lib/reviews";
 import { colors, typography, fonts, radii, spacing } from "@/lib/theme";
 
 export default function BookingDetail() {
@@ -96,6 +97,19 @@ export default function BookingDetail() {
           {b.carModel && <Detail k="Модель" v={b.carModel} />}
           {b.notes && <Detail k="Заметки" v={b.notes} last />}
         </Card>
+
+        {/* Отзыв на Яндекс.Картах — по каждой броне */}
+        <TouchableOpacity onPress={openYandexReviews} style={s.reviewCard} activeOpacity={0.8}>
+          <Text style={s.reviewStars}>★★★★★</Text>
+          <Text style={s.reviewTitle}>
+            {hasStayed(b.status) ? "Оцените нас на Яндекс.Картах" : "Отзывы о парковке"}
+          </Text>
+          <Text style={s.reviewSub}>
+            {hasStayed(b.status)
+              ? "Ваш отзыв занимает минуту и помогает другим найти нас"
+              : "Почитайте, что пишут клиенты, которые уже съездили"}
+          </Text>
+        </TouchableOpacity>
 
         {/* Actions */}
         {upcoming && (
@@ -215,6 +229,18 @@ const s = StyleSheet.create({
     maxWidth: "60%",
     textAlign: "right",
   },
+
+  reviewCard: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    backgroundColor: colors.warningBg,
+    borderWidth: 1,
+    borderColor: "rgba(160,102,20,0.18)",
+  },
+  reviewStars: { color: colors.warning, fontSize: 15, letterSpacing: 2, marginBottom: 6 },
+  reviewTitle: { color: colors.warning, fontSize: 15, fontWeight: "700", marginBottom: 4 },
+  reviewSub: { color: colors.textSecondary, fontSize: 12.5, lineHeight: 18 },
 
   err: { color: colors.danger, fontSize: 14, textAlign: "center" },
 });

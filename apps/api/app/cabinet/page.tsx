@@ -12,6 +12,10 @@ export const metadata = {
 };
 
 const SITE = "https://uletnayaparkovka.ru";
+// Отзывы на Яндекс.Картах — карточка организации «Улётная парковка».
+// Просим отзыв у тех, кто уже съездил: отзывы двигают выдачу в картах,
+// а карты по «парковка Шереметьево» стоят выше рекламы.
+const YANDEX_REVIEWS = "https://yandex.ru/maps/org/ulyotnaya_parkovka/64527453581/reviews/";
 
 const STATUS_RU: Record<string, string> = {
   new: "Новая",
@@ -26,6 +30,15 @@ function money(kopecks: number) {
 }
 function d(date: Date) {
   return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+}
+
+/**
+ * Клиент уже был на парковке? Тогда просим оценить.
+ * Если бронь ещё впереди — та же карточка Яндекса, но как «почитать отзывы»:
+ * просить оценку за услугу, которой ещё не было, бессмысленно.
+ */
+function hasStayed(status: string) {
+  return status === "active" || status === "completed";
 }
 
 export default async function CabinetPage() {
@@ -108,7 +121,12 @@ export default async function CabinetPage() {
                     {b.airport}{b.carNumber ? ` · ${b.carNumber}` : ""} · {STATUS_RU[b.status] ?? b.status}
                   </div>
                 </div>
-                <div style={rowPrice}>{money(b.priceKopecks)}</div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={rowPrice}>{money(b.priceKopecks)}</div>
+                  <a href={YANDEX_REVIEWS} target="_blank" rel="noopener" style={review}>
+                    {hasStayed(b.status) ? "★ Оценить на Яндексе" : "★ Отзывы на Яндексе"}
+                  </a>
+                </div>
               </div>
             ))
           )}
@@ -130,6 +148,9 @@ export default async function CabinetPage() {
                 <div style={{ textAlign: "right" }}>
                   <div style={rowPrice}>{money(b.priceKopecks)}</div>
                   <a href={`${SITE}/sheremetevo`} style={repeat}>Повторить</a>
+                  <a href={YANDEX_REVIEWS} target="_blank" rel="noopener" style={review}>
+                    {hasStayed(b.status) ? "★ Оценить на Яндексе" : "★ Отзывы на Яндексе"}
+                  </a>
                 </div>
               </div>
             ))
@@ -189,6 +210,7 @@ const rowTitle: React.CSSProperties = { fontSize: 14, fontWeight: 600 };
 const rowSub: React.CSSProperties = { fontSize: 12.5, color: "#8a97a1", marginTop: 2 };
 const rowPrice: React.CSSProperties = { fontSize: 14, fontWeight: 700, whiteSpace: "nowrap" };
 const repeat: React.CSSProperties = { fontSize: 12, color: "#1a8f86", textDecoration: "none", display: "block", marginTop: 3 };
+const review: React.CSSProperties = { fontSize: 12, color: "#c98a00", textDecoration: "none", display: "block", marginTop: 3, whiteSpace: "nowrap" };
 const empty: React.CSSProperties = { fontSize: 13.5, color: "#8a97a1", margin: 0 };
 const link: React.CSSProperties = { color: "#1a8f86", textDecoration: "none" };
 const foot: React.CSSProperties = { marginTop: 24, fontSize: 13, color: "#8a97a1", textAlign: "center" };
