@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth";
 import { findOrCreateContactByPhone } from "@/lib/amocrm";
 import { linkBookingsToUserByPhone } from "@/lib/sync-amocrm";
+import { setClientCookie } from "@/lib/cabinet-auth";
 
 /**
  * Проверка кода входа (e-mail или телефон) и выдача токенов.
@@ -22,6 +23,9 @@ const Body = z
     email: z.string().optional(),
     phone: z.string().optional(),
     code: z.string().length(6),
+    // true — вход из браузера (личный кабинет): дополнительно ставим httpOnly cookie.
+    // Мобильное приложение флаг не шлёт и работает по Bearer-токену, как раньше.
+    web: z.boolean().optional(),
   })
   .refine((b) => Boolean(b.email || b.phone), { message: "email or phone required" });
 
@@ -142,6 +146,12 @@ export async function POST(req: Request) {
   };
   const accessToken = await signAccessToken(claims);
   const refreshToken = await signRefreshToken(claims);
+
+  // Вход из браузера — кладём токен в httpOnly cookie, чтобы страницы кабинета
+  // читали сессию на сервере и токен не лежал в localStorage.
+  if (parsed.data.web) {
+    await setClientCookie(accessToken);
+  }
 
   console.log(`[verify-code] вход через ${channel}, user ${user.id}${isNewUser ? " (новый)" : ""}`);
 
