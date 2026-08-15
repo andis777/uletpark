@@ -46,7 +46,7 @@ export const HEADER_HTML = `<header>
                        <img src="https://uletnayaparkovka.ru/wp-content/themes/air1/page/assets/img/gplay.png" alt="gplay" class="gplay">                        
                     </a>
 
-                    <a class="callback-btn" href="tel:+79099148881">Обратный звонок</a>
+                    <button class="callback-btn">Обратный звонок</button>
 
                     <span class="cabinet-wrap" style="display:flex;flex-direction:column;align-items:center">
                         <a href="/cabinet" class="contact-link cabinet-link" title="Личный кабинет" aria-label="Личный кабинет">
@@ -134,8 +134,8 @@ export const FOOTER_HTML = `<footer>
                         </svg>                         
                     </div>
 
-                    <a class="callback-btn questions" href="tel:+79099148881">Остались вопросы?</a>
-                    <a class="callback-btn check_bron" href="/cabinet">Проверка бронирования</a>
+                    <button class="callback-btn questions">Остались вопросы?</button>
+                    <button class="callback-btn check_bron">Проверка бронирования</button>
                 </div>
                 
                 <menu class="footer-contacts">

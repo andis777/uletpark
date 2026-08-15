@@ -19,27 +19,34 @@ const STYLES = [
 ];
 
 /**
- * Тема вешает поведение в app.js, но он падает без модалок, которые лежат в теле
- * страницы сайта, а не в шапке. Поэтому — только бургер, ровно как в оригинале.
+ * Тема вешает поведение в app.js, но он падает без модалок: они лежат в теле
+ * страницы сайта, а не в шапке. Поэтому повторяем только нужное — бургер,
+ * как в оригинале, и осмысленное действие для кнопок, которые открывали модалки.
  */
 const MENU_JS = `
 (function(){
   var menu = document.querySelector('.header-menu');
-  var open = document.querySelector('.mobile-menu-btn');
-  var close = document.querySelector('.close-menu-li');
-  if (!menu) return;
-  if (open)  open.addEventListener('click',  function(){ menu.classList.add('active-menu'); });
-  if (close) close.addEventListener('click', function(){ menu.classList.remove('active-menu'); });
-  window.addEventListener('scroll', function(){ menu.classList.remove('active-menu'); });
+  if (menu) {
+    var open = document.querySelector('.mobile-menu-btn');
+    var close = document.querySelector('.close-menu-li');
+    if (open)  open.addEventListener('click',  function(){ menu.classList.add('active-menu'); });
+    if (close) close.addEventListener('click', function(){ menu.classList.remove('active-menu'); });
+    window.addEventListener('scroll', function(){ menu.classList.remove('active-menu'); });
+  }
+  // Модалок тут нет — ведём туда, куда человек и хотел попасть.
+  function go(sel, url){
+    document.querySelectorAll(sel).forEach(function(b){
+      b.addEventListener('click', function(){ window.location.href = url; });
+    });
+  }
+  go('.callback-btn.check_bron', '/cabinet');
+  go('.callback-btn.questions', 'tel:+79099148881');
+  go('.callback-btn:not(.questions):not(.check_bron):not(.mobile-menu-btn)', 'tel:+79099148881');
 })();
 `;
 
-// Кнопки модалок стали ссылками — возвращаем им вид кнопки. Плюс фон под содержимым
-// кабинета: тема задаёт свой, а нам нужен светлый.
+// Фон под содержимым кабинета: тема задаёт свой, а нам нужен светлый.
 const FIXUP_CSS = `
-a.callback-btn{display:inline-flex;align-items:center;justify-content:center;
-  text-decoration:none;box-sizing:border-box;cursor:pointer}
-a.callback-btn:hover{text-decoration:none}
 .ulk-body{background:#f4f7f7;min-height:60vh}
 .ulk-body h1,.ulk-body h2,.ulk-body p{margin:0}
 `;
