@@ -1,0 +1,94 @@
+# =========================================================================
+# Одноразовая миграция БД под вход по e-mail и Яндекс ID.
+#
+# Зачем отдельно от migrate.yml: тот запускает drizzle-kit push ПОСЛЕ деплоя.
+# Новый код читает колонки email_verified_at / yandex_id / otp_codes.identifier,
+# поэтому если задеплоить раньше миграции — упадут все запросы к users.
+# Плюс уникальный индекс по email не создастся, если в базе есть дубли почты,
+# а этот SQL их аккуратно расчищает.
+#
+# Порядок: сначала этот workflow → потом «Deploy API».
+# SQL встроен в файл: на сервере исходников ещё нет (они приезжают при деплое).
+# Идемпотентно — повторный запуск безопасен.
+# =========================================================================
+name: Apply auth SQL migrations
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: [self-hosted, uletnaya]
+    timeout-minutes: 10
+    steps:
+      - name: Where am I
+        run: |
+          echo "host:   $(hostname)"
+          echo "docker: $(docker --version 2>&1)"
+
+      - name: Apply SQL (idempotent, in transaction)
+        run: |
+          sudo -n docker run --rm -i \
+            --network uletnaya_uletnaya \
+            --env-file /opt/uletnaya/.env.production \
+            postgres:16-alpine \
+            sh -c 'export PGPASSWORD="$POSTGRES_PASSWORD"; psql -h postgres -U uletnaya -d uletnaya -v ON_ERROR_STOP=1 -f -' <<'SQL'
+          BEGIN;
+
+          -- ---- Этап 1: вход по коду на e-mail ----
+          ALTER TABLE users ALTER COLUMN phone DROP NOT NULL;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at timestamptz;
+
+          UPDATE users SET email = lower(trim(email)) WHERE email IS NOT NULL;
+
+          -- дубли почты: оставляем адрес только у самой старой записи
+          WITH dupes AS (
+            SELECT id, row_number() OVER (PARTITION BY lower(email) ORDER BY created_at) AS rn
+            FROM users WHERE email IS NOT NULL AND email <> ''
+          )
+          UPDATE users u SET email = NULL FROM dupes d WHERE u.id = d.id AND d.rn > 1;
+
+          UPDATE users SET email = NULL WHERE email = '';
+          CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users (email);
+
+          ALTER TABLE otp_codes ALTER COLUMN phone DROP NOT NULL;
+          ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS identifier text;
+          ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS channel text NOT NULL DEFAULT 'sms';
+          UPDATE otp_codes SET identifier = phone WHERE identifier IS NULL AND phone IS NOT NULL;
+          CREATE INDEX IF NOT EXISTS otp_identifier_idx ON otp_codes (identifier, expires_at);
+
+          -- ---- Этап 2: Яндекс ID ----
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS yandex_id text;
+          CREATE UNIQUE INDEX IF NOT EXISTS users_yandex_idx ON users (yandex_id);
+
+          COMMIT;
+          SQL
+          echo "✓ SQL применён"
+
+      - name: Verify schema
+        run: |
+          sudo -n docker run --rm -i \
+            --network uletnaya_uletnaya \
+            --env-file /opt/uletnaya/.env.production \
+            postgres:16-alpine \
+            sh -c 'export PGPASSWORD="$POSTGRES_PASSWORD"; psql -h postgres -U uletnaya -d uletnaya -At -f -' <<'SQL'
+          SELECT 'users.phone nullable = ' || is_nullable FROM information_schema.columns
+            WHERE table_name='users' AND column_name='phone';
+          SELECT 'users columns: ' || string_agg(column_name, ', ' ORDER BY column_name)
+            FROM information_schema.columns
+            WHERE table_name='users' AND column_name IN ('email_verified_at','yandex_id');
+          SELECT 'otp columns: ' || string_agg(column_name, ', ' ORDER BY column_name)
+            FROM information_schema.columns
+            WHERE table_name='otp_codes' AND column_name IN ('identifier','channel');
+          SELECT 'indexes: ' || string_agg(indexname, ', ' ORDER BY indexname)
+            FROM pg_indexes WHERE indexname IN ('users_email_idx','users_yandex_idx','otp_identifier_idx');
+          SQL
+
+      - name: API still healthy
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:7982/api/health || echo 000)
+          [ "$code" = "200" ] && echo "✓ API healthy" || (echo "✗ API HTTP $code"; exit 1)
