@@ -61,8 +61,6 @@ const card: React.CSSProperties = {
   padding: "32px 28px",
   boxShadow: "0 10px 30px rgba(15,59,93,.06)",
 };
-const brand: React.CSSProperties = { fontSize: 18, fontWeight: 800, color: "#0f3b5d" };
-const brandSub: React.CSSProperties = { fontSize: 12, color: "#8a97a1", marginTop: 2 };
 const title: React.CSSProperties = { fontSize: 22, fontWeight: 700, color: "#14303f", margin: "0 0 8px" };
 const lede: React.CSSProperties = { fontSize: 14, color: "#5c6b76", margin: "0 0 20px", lineHeight: 1.5 };
 const legal: React.CSSProperties = { fontSize: 11.5, color: "#8a97a1", marginTop: 18, lineHeight: 1.5 };
