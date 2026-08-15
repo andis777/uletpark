@@ -8,7 +8,8 @@ const SECRET = new TextEncoder().encode(
 
 export interface JwtPayload {
   sub: string;          // user id
-  phone: string;
+  phone?: string;       // может отсутствовать: регистрация по e-mail без телефона
+  email?: string;
   type: "access" | "refresh";
 }
 
@@ -62,6 +63,26 @@ export async function hashOtp(code: string): Promise<string> {
 
 export async function verifyOtp(code: string, hash: string): Promise<boolean> {
   return bcrypt.compare(code, hash);
+}
+
+/**
+ * Код для входа по e-mail. Всегда случайный: заглушка "111111" из generateOtp()
+ * привязана к STUB-режиму SMS.ru и к почте отношения не имеет.
+ * В dev код возвращается в ответе (devCode), так что фиксированный не нужен.
+ */
+export function generateEmailCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+/* --- Email normalization --- */
+
+/** Нормализует e-mail: обрезает пробелы и приводит к нижнему регистру. null — если формат неверный. */
+export function normalizeEmail(input: string): string | null {
+  const email = input.trim().toLowerCase();
+  // Намеренно простая проверка: строгие regex отсекают валидные адреса.
+  if (email.length < 6 || email.length > 254) return null;
+  if (!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(email)) return null;
+  return email;
 }
 
 /* --- Phone normalization --- */

@@ -81,7 +81,7 @@ export async function GET(req: Request) {
     for (const u of rows) {
       usersMap.set(u.id, {
         name: [u.firstName, u.lastName].filter(Boolean).join(" ") || "Гость",
-        phone: u.phone,
+        phone: u.phone ?? "",
       });
     }
   }

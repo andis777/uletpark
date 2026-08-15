@@ -18,6 +18,12 @@ export async function POST(req: Request) {
   const [user] = await db.select().from(users).where(eq(users.id, auth.sub)).limit(1);
   if (!user) return NextResponse.json({ error: "USER_NOT_FOUND" }, { status: 404 });
 
+  // Синхронизация идёт по телефону. У пользователя, вошедшего по почте,
+  // его может не быть — тогда синхронизировать нечего.
+  if (!user.phone) {
+    return NextResponse.json({ ok: true, linkedBookings: 0, phone: null, needsPhone: true });
+  }
+
   try {
     const result = await linkBookingsToUserByPhone(user.id, user.phone);
     return NextResponse.json({

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from "react-native";
 import { router } from "expo-router";
-import { requestOtp, verifyOtp, setTokens } from "@/lib/api";
+import { requestCode, verifyCode, setTokens } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 
@@ -10,8 +10,11 @@ const OFFER_URL = "https://uletnayaparkovka.ru/politika-konfidencialnosti#oferta
 const RULES_URL = "https://uletnayaparkovka.ru/politika-konfidencialnosti#rules";
 
 export default function Login() {
-  const [step, setStep] = useState<"phone" | "code">("phone");
+  const [step, setStep] = useState<"contact" | "code">("contact");
+  // Почта — основной канал: письма бесплатны и доходят, в отличие от SMS.
+  const [mode, setMode] = useState<"email" | "phone">("email");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -22,20 +25,35 @@ export default function Login() {
     analytics.authStarted();
   }, []);
 
+  /** Что отправляем на сервер — почту или телефон. */
+  function target() {
+    return mode === "email" ? { email: email.trim() } : { phone };
+  }
+
   async function onRequest() {
     setErr(null);
     setInfo(null);
     setBusy(true);
     try {
-      console.log("[login] requestOtp", phone);
-      const r = await requestOtp({ phone });
-      console.log("[login] response", r);
-      setInfo(r.devCode ? `Тестовый код: ${r.devCode}` : `Код отправлен по SMS на ${phone}`);
+      const r = await requestCode(target());
+      setInfo(
+        r.devCode
+          ? `Тестовый код: ${r.devCode}`
+          : mode === "email"
+            ? `Код отправлен на ${email.trim()}. Проверьте почту, в том числе «Спам».`
+            : `Код отправлен по SMS на ${phone}`
+      );
       setStep("code");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error("[login] error", e);
-      setErr(`Не удалось отправить: ${msg}`);
+      console.error("[login] request error", e);
+      setErr(
+        msg.includes("EMAIL_SEND_FAILED")
+          ? "Не удалось отправить письмо. Попробуйте войти по телефону."
+          : msg.includes("TOO_MANY_REQUESTS")
+            ? "Слишком много попыток. Попробуйте через несколько минут."
+            : `Не удалось отправить код: ${msg}`
+      );
     } finally {
       setBusy(false);
     }
@@ -45,12 +63,18 @@ export default function Login() {
     setErr(null);
     setBusy(true);
     try {
-      const r = await verifyOtp({ phone, code });
+      const r = await verifyCode({ ...target(), code });
       await setTokens({ accessToken: r.accessToken, refreshToken: r.refreshToken });
       router.replace("/(tabs)");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setErr(`Не удалось войти: ${msg}`);
+      setErr(
+        msg.includes("INVALID_CODE")
+          ? "Неверный код. Проверьте и введите ещё раз."
+          : msg.includes("CODE_NOT_FOUND_OR_EXPIRED")
+            ? "Срок действия кода истёк. Запросите новый."
+            : `Не удалось войти: ${msg}`
+      );
     } finally {
       setBusy(false);
     }
@@ -58,7 +82,10 @@ export default function Login() {
 
   // Минимально: 11 цифр для российского номера или 10 без 7
   const phoneOk = phone.replace(/\D/g, "").length >= 10;
+  const emailOk = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(email.trim());
+  const contactOk = mode === "email" ? emailOk : phoneOk;
   const codeOk = code.length === 6;
+  const contactLabel = mode === "email" ? email.trim() : phone;
 
   return (
     <View style={s.wrap}>
@@ -71,35 +98,71 @@ export default function Login() {
       </View>
 
       <View style={s.body}>
-        <Text style={s.eyebrow}>{step === "phone" ? "ВХОД ПО ТЕЛЕФОНУ" : "ПОДТВЕРЖДЕНИЕ"}</Text>
+        <Text style={s.eyebrow}>{step === "contact" ? "ВХОД И РЕГИСТРАЦИЯ" : "ПОДТВЕРЖДЕНИЕ"}</Text>
         <Text style={s.title}>
-          {step === "phone" ? "Введите номер телефона" : "Введите код из SMS"}
+          {step === "contact"
+            ? mode === "email" ? "Введите вашу почту" : "Введите номер телефона"
+            : "Введите код"}
         </Text>
         <Text style={s.lede}>
-          {step === "phone"
-            ? "Отправим SMS с кодом подтверждения"
-            : `Код отправлен на ${phone}. Действует 5 минут.`}
+          {step === "contact"
+            ? mode === "email"
+              ? "Пришлём код на почту — быстро и бесплатно"
+              : "Отправим SMS с кодом подтверждения"
+            : `Код отправлен на ${contactLabel}. Действует 15 минут.`}
         </Text>
 
-        {step === "phone" ? (
+        {step === "contact" ? (
           <>
-            <TextInput
-              style={s.input}
-              placeholder="+7 999 123 45 67"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-              autoFocus
-              onSubmitEditing={() => !busy && onRequest()}
-            />
-            <Text style={s.debug}>Цифр введено: {phone.replace(/\D/g, "").length} (нужно ≥10)</Text>
+            <View style={s.tabs}>
+              <TouchableOpacity
+                style={[s.tab, mode === "email" && s.tabActive]}
+                onPress={() => { setMode("email"); setErr(null); setInfo(null); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[s.tabTxt, mode === "email" && s.tabTxtActive]}>Почта</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.tab, mode === "phone" && s.tabActive]}
+                onPress={() => { setMode("phone"); setErr(null); setInfo(null); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[s.tabTxt, mode === "phone" && s.tabTxtActive]}>Телефон</Text>
+              </TouchableOpacity>
+            </View>
+
+            {mode === "email" ? (
+              <TextInput
+                style={s.input}
+                placeholder="you@example.com"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                value={email}
+                onChangeText={setEmail}
+                autoFocus
+                onSubmitEditing={() => contactOk && !busy && onRequest()}
+              />
+            ) : (
+              <TextInput
+                style={s.input}
+                placeholder="+7 999 123 45 67"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
+                autoFocus
+                onSubmitEditing={() => contactOk && !busy && onRequest()}
+              />
+            )}
             {err && <Text style={s.err}>{err}</Text>}
             {info && <Text style={s.info}>{info}</Text>}
             <TouchableOpacity
-              style={[s.btn, busy && s.btnDisabled]}
+              style={[s.btn, (busy || !contactOk) && s.btnDisabled]}
               onPress={onRequest}
-              disabled={busy}
+              disabled={busy || !contactOk}
               activeOpacity={0.7}
             >
               {busy ? <ActivityIndicator color={colors.textOnDark} /> : <Text style={s.btnTxt}>Получить код</Text>}
@@ -127,15 +190,15 @@ export default function Login() {
             >
               {busy ? <ActivityIndicator color={colors.textOnDark} /> : <Text style={s.btnTxt}>Войти</Text>}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setStep("phone"); setCode(""); setErr(null); }}>
-              <Text style={s.alt}>Изменить номер</Text>
+            <TouchableOpacity onPress={() => { setStep("contact"); setCode(""); setErr(null); setInfo(null); }}>
+              <Text style={s.alt}>{mode === "email" ? "Изменить почту" : "Изменить номер"}</Text>
             </TouchableOpacity>
           </>
         )}
 
         <View style={s.legalBlock}>
           <Text style={s.legal}>
-            Нажимая «{step === "phone" ? "Получить код" : "Войти"}», вы соглашаетесь с условиями использования сервиса.
+            Нажимая «{step === "contact" ? "Получить код" : "Войти"}», вы соглашаетесь с условиями использования сервиса.
           </Text>
           <TouchableOpacity
             onPress={() => Linking.openURL(OFFER_URL)}
@@ -178,6 +241,18 @@ const s = StyleSheet.create({
   eyebrow: { color: colors.primary, fontSize: 11, letterSpacing: 3, fontWeight: "600", marginBottom: spacing.md },
   title: { color: colors.textPrimary, fontSize: 28, fontWeight: "300", fontFamily: fonts.heading, marginBottom: spacing.sm, lineHeight: 34 },
   lede: { color: colors.textSecondary, fontSize: 14, marginBottom: spacing.xxl, lineHeight: 22 },
+
+  tabs: {
+    flexDirection: "row",
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.md,
+    padding: 4,
+    marginBottom: spacing.lg,
+  },
+  tab: { flex: 1, paddingVertical: 10, borderRadius: radii.sm, alignItems: "center" },
+  tabActive: { backgroundColor: colors.primary },
+  tabTxt: { color: colors.textSecondary, fontSize: 14, fontWeight: "600" },
+  tabTxtActive: { color: colors.textOnDark },
 
   input: {
     backgroundColor: colors.surfaceMuted,

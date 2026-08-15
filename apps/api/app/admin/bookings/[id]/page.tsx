@@ -57,7 +57,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             {u ? (
               <>
                 <Field k="Имя" v={`${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || "—"} />
-                <Field k="Телефон" v={u.phone} />
+                <Field k="Телефон" v={u.phone ?? "— (вход по почте)"} />
                 {u.email && <Field k="Email" v={u.email} />}
                 <Field k="Тариф" v={u.loyaltyTier} />
                 <Field k="Баллов" v={String(u.loyaltyPoints)} />

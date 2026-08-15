@@ -192,6 +192,38 @@ function getTransporter() {
   return _transporter;
 }
 
+/**
+ * Код для входа в приложение / личный кабинет — письмом клиенту.
+ * Отдельная функция: у неё получатель — клиент, а не владелец (SMTP_TO).
+ */
+export async function sendLoginCode(email: string, code: string): Promise<{ ok: boolean; error?: string }> {
+  const t = getTransporter();
+  if (!t) {
+    console.log("[auth] Email skip — SMTP not configured");
+    return { ok: false, error: "NOT_CONFIGURED" };
+  }
+  try {
+    await t.sendMail({
+      from: SMTP_FROM,
+      to: email,
+      subject: `${code} — код для входа · Улётная Парковка`,
+      text: `Ваш код для входа: ${code}\n\nКод действует 15 минут. Если вы не запрашивали вход — просто проигнорируйте это письмо.\n\nУлётная Парковка · парковка у Шереметьево`,
+      html: `<div style="font-family:-apple-system,Segoe UI,Inter,Arial,sans-serif;max-width:460px;margin:0 auto;color:#1a1d24">
+        <h2 style="color:#0f4d47;margin:0 0 8px;font-size:20px">Код для входа</h2>
+        <p style="margin:0 0 20px;color:#5c6b76;font-size:14px">Улётная Парковка — парковка у Шереметьево</p>
+        <div style="font-size:34px;font-weight:800;letter-spacing:7px;background:#f5faf9;border:1px solid #dbeeeb;border-radius:14px;padding:18px;text-align:center;color:#0f3b5d">${escapeHtml(code)}</div>
+        <p style="margin:20px 0 6px;font-size:14px">Код действует <b>15 минут</b>.</p>
+        <p style="margin:0;font-size:13px;color:#8a97a1">Если вы не запрашивали вход — просто проигнорируйте это письмо, ничего не произойдёт.</p>
+      </div>`,
+    });
+    console.log(`[auth] код входа отправлен на ${email.replace(/^(.).*(@.*)$/, "$1***$2")}`);
+    return { ok: true };
+  } catch (e) {
+    console.warn("[auth] sendLoginCode error:", e);
+    return { ok: false, error: e instanceof Error ? e.message : "SEND_FAILED" };
+  }
+}
+
 export async function notifyEmail(lead: LeadPayload): Promise<{ ok: boolean; error?: string }> {
   const t = getTransporter();
   if (!t) {

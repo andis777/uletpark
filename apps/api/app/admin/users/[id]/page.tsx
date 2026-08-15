@@ -32,7 +32,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
         <div>
           <div style={card}>
             <h2 style={cardTitle}>Профиль</h2>
-            <Field k="Телефон" v={u.phone} />
+            <Field k="Телефон" v={u.phone ?? "— (вход по почте)"} />
             <Field k="Email" v={u.email ?? "—"} />
             <Field k="Реферальный код" v={u.referralCode ?? "—"} />
             <Field k="Зарегистрирован" v={u.createdAt.toLocaleString("ru")} />

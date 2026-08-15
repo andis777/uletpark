@@ -81,6 +81,26 @@ export const verifyOtp = (body: VerifyOtpBody) =>
     "/api/auth/verify-otp", { method: "POST", body: JSON.stringify(body), auth: false }
   );
 
+/* --- Вход по коду: e-mail (основной канал) или телефон ---
+   SMS дорогие и часто не доходят (отправитель не подключён у части операторов),
+   поэтому основной способ входа — код на почту. */
+
+export type CodeChannel = "email" | "sms";
+
+export const requestCode = (target: { email?: string; phone?: string }) =>
+  call<{ ok: true; channel: CodeChannel; expiresIn: number; devCode?: string }>(
+    "/api/auth/request-code",
+    { method: "POST", body: JSON.stringify(target), auth: false }
+  );
+
+export const verifyCode = (body: { email?: string; phone?: string; code: string }) =>
+  call<AuthTokens & {
+    user: UserProfile;
+    isNewUser: boolean;
+    needsPhone: boolean;   // true — телефон спросим на первой броне
+    linkedBookings: number;
+  }>("/api/auth/verify-code", { method: "POST", body: JSON.stringify(body), auth: false });
+
 /* --- Me --- */
 export const getMe = () => call<{ user: UserProfile }>("/api/me");
 export const updateMe = (patch: Partial<Pick<UserProfile, "firstName" | "lastName" | "email">> & { pushToken?: string }) =>

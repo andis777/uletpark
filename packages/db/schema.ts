@@ -37,11 +37,14 @@ export const users = pgTable(
   "users",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    phone: text("phone").notNull(),                          // +79991234567
+    // Телефон больше НЕ обязателен: можно зарегистрироваться по почте.
+    // Телефон запрашивается при первой брони (нужен для amoCRM и трансфера).
+    phone: text("phone"),                                    // +79991234567
     amocrmContactId: bigint("amocrm_contact_id", { mode: "number" }),
     firstName: text("first_name"),
     lastName: text("last_name"),
     email: text("email"),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     loyaltyTier: loyaltyTierEnum("loyalty_tier").default("bronze").notNull(),
     loyaltyPoints: integer("loyalty_points").default(0).notNull(),
     referralCode: text("referral_code"),
@@ -52,6 +55,7 @@ export const users = pgTable(
   },
   (t) => ({
     phoneIdx: uniqueIndex("users_phone_idx").on(t.phone),
+    emailIdx: uniqueIndex("users_email_idx").on(t.email),
     amocrmIdx: uniqueIndex("users_amocrm_idx").on(t.amocrmContactId),
     referralIdx: uniqueIndex("users_referral_idx").on(t.referralCode),
   })
@@ -65,7 +69,12 @@ export const otpCodes = pgTable(
   "otp_codes",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    phone: text("phone").notNull(),
+    // Старое поле: остаётся ради обратной совместимости со /auth/request-otp.
+    // Для входа по почте телефона нет — поэтому больше не NOT NULL.
+    phone: text("phone"),
+    // Новое: универсальный идентификатор — нормализованный телефон ИЛИ e-mail в нижнем регистре.
+    identifier: text("identifier"),
+    channel: text("channel").default("sms").notNull(),       // sms | email
     codeHash: text("code_hash").notNull(),                   // bcrypt hash
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     consumedAt: timestamp("consumed_at", { withTimezone: true }),
@@ -74,6 +83,7 @@ export const otpCodes = pgTable(
   },
   (t) => ({
     phoneIdx: index("otp_phone_idx").on(t.phone, t.expiresAt),
+    identIdx: index("otp_identifier_idx").on(t.identifier, t.expiresAt),
   })
 );
 
