@@ -47,13 +47,12 @@ export default async function CabinetLoginPage() {
   );
 }
 
+// Высоту держит общий layout кабинета — здесь только центрируем карточку по ширине.
 const wrap: React.CSSProperties = {
-  minHeight: "100vh",
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "center",
-  background: "#f4f7f7",
-  padding: 20,
+  padding: "40px 20px 56px",
   fontFamily: "-apple-system, Segoe UI, Inter, Arial, sans-serif",
 };
 const card: React.CSSProperties = {

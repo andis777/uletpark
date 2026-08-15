@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { db, bookings, loyaltyTransactions } from "@/lib/db";
 import { getCurrentClient } from "@/lib/cabinet-auth";
-import { LogoutButton } from "./LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -66,16 +65,7 @@ export default async function CabinetPage() {
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || "Здравствуйте";
 
   return (
-    <div style={wrap}>
-      <header style={head}>
-        <div>
-          <div style={brand}>Улётная Парковка</div>
-          <div style={brandSub}>личный кабинет</div>
-        </div>
-        <LogoutButton />
-      </header>
-
-      <main style={main}>
+    <div style={main}>
         <h1 style={h1}>{name}</h1>
         <p style={sub}>{user.email ?? user.phone}</p>
 
@@ -181,19 +171,11 @@ export default async function CabinetPage() {
           </section>
         )}
 
-        <footer style={foot}>
-          <a href={SITE} style={link}>← На сайт</a>
-          <span> · +7 (909) 914-88-81</span>
-        </footer>
-      </main>
     </div>
   );
 }
 
-const wrap: React.CSSProperties = { minHeight: "100vh", background: "#f4f7f7", fontFamily: "-apple-system, Segoe UI, Inter, Arial, sans-serif", color: "#14303f" };
-const head: React.CSSProperties = { background: "#0f3b5d", color: "#fff", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" };
-const brand: React.CSSProperties = { fontSize: 16, fontWeight: 800 };
-const brandSub: React.CSSProperties = { fontSize: 11.5, color: "#bfd6e4", marginTop: 2 };
+// Шапка и подвал — в общем layout.tsx кабинета; здесь только содержимое страницы.
 const main: React.CSSProperties = { maxWidth: 760, margin: "0 auto", padding: "24px 16px 48px" };
 const h1: React.CSSProperties = { fontSize: 26, fontWeight: 700, margin: "0 0 4px" };
 const sub: React.CSSProperties = { fontSize: 14, color: "#5c6b76", margin: "0 0 20px" };
@@ -213,4 +195,3 @@ const repeat: React.CSSProperties = { fontSize: 12, color: "#1a8f86", textDecora
 const review: React.CSSProperties = { fontSize: 12, color: "#c98a00", textDecoration: "none", display: "block", marginTop: 3, whiteSpace: "nowrap" };
 const empty: React.CSSProperties = { fontSize: 13.5, color: "#8a97a1", margin: 0 };
 const link: React.CSSProperties = { color: "#1a8f86", textDecoration: "none" };
-const foot: React.CSSProperties = { marginTop: 24, fontSize: 13, color: "#8a97a1", textAlign: "center" };
