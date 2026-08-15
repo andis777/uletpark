@@ -25,12 +25,14 @@ export function LogoutButton() {
   );
 }
 
+// Кнопка переехала из тёмной шапки в светлое тело страницы — отсюда и цвета.
 const btn: React.CSSProperties = {
-  background: "rgba(255,255,255,.12)",
-  border: "1px solid rgba(255,255,255,.3)",
-  color: "#fff",
+  background: "#fff",
+  border: "1px solid #d5e0e4",
+  color: "#5c6b76",
   borderRadius: 8,
-  padding: "7px 14px",
+  padding: "8px 15px",
   fontSize: 13,
+  whiteSpace: "nowrap",
   cursor: "pointer",
 };

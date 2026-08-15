@@ -20,10 +20,7 @@ export default async function CabinetLoginPage() {
   return (
     <div style={wrap}>
       <div style={card}>
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={brand}>Улётная Парковка</div>
-          <div style={brandSub}>парковка у Шереметьево</div>
-        </div>
+        {/* Бренд теперь в настоящей шапке сайта — второй раз его показывать незачем. */}
         <h1 style={title}>Личный кабинет</h1>
         <p style={lede}>
           Ваши брони, история и баллы. Вход по коду на почту — пароль не нужен.

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { db, bookings, loyaltyTransactions } from "@/lib/db";
 import { getCurrentClient } from "@/lib/cabinet-auth";
+import { LogoutButton } from "./LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -66,8 +67,14 @@ export default async function CabinetPage() {
 
   return (
     <div style={main}>
-        <h1 style={h1}>{name}</h1>
-        <p style={sub}>{user.email ?? user.phone}</p>
+        {/* Шапка сайта одинакова для всех страниц, поэтому «Выйти» живёт здесь. */}
+        <div style={nameRow}>
+          <div>
+            <h1 style={h1}>{name}</h1>
+            <p style={sub}>{user.email ?? user.phone}</p>
+          </div>
+          <LogoutButton />
+        </div>
 
         {/* Телефон нужен для брони — просим добавить, если вошли по почте */}
         {!user.phone && (
@@ -177,8 +184,9 @@ export default async function CabinetPage() {
 
 // Шапка и подвал — в общем layout.tsx кабинета; здесь только содержимое страницы.
 const main: React.CSSProperties = { maxWidth: 760, margin: "0 auto", padding: "24px 16px 48px" };
+const nameRow: React.CSSProperties = { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 20 };
 const h1: React.CSSProperties = { fontSize: 26, fontWeight: 700, margin: "0 0 4px" };
-const sub: React.CSSProperties = { fontSize: 14, color: "#5c6b76", margin: "0 0 20px" };
+const sub: React.CSSProperties = { fontSize: 14, color: "#5c6b76", margin: 0 };
 const warn: React.CSSProperties = { background: "#fdf5ef", border: "1px solid #f3ddc9", borderRadius: 12, padding: "12px 14px", fontSize: 13.5, color: "#8a5a2b", marginBottom: 18, lineHeight: 1.5 };
 const cards: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 };
 const kpi: React.CSSProperties = { background: "#fff", border: "1px solid #e3ecee", borderRadius: 12, padding: "14px 16px", textAlign: "center" };
