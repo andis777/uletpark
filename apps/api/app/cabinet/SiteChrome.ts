@@ -160,3 +160,6 @@ export const FOOTER_HTML = `<footer>
             <small class="copyrights-small">2016-2026 © Улетная парковка. Все права защищены.</small>
         </div>
     </footer>`;
+
+// Компакция шапки на десктопе — тот же inline-CSS, что и на сайте.
+export const COMPACT_CSS = `@media(min-width:1025px){.header-top{padding-top:6px!important;padding-bottom:6px!important}.breadcrumbs-container{padding-top:2px!important;padding-bottom:2px!important}.breadcrumbs{padding:4px 0!important}h1.advantages-h1{font-size:30px!important;line-height:1.15!important;margin:6px 0 2px!important}.ulet-rate{margin:2px 0 8px!important}.ulet-booking{margin-top:6px!important;margin-bottom:6px!important}.uletnaya-cookie-banner{padding:8px 16px!important;font-size:12.5px!important} header .container{padding-top:6px!important;padding-bottom:4px!important} .header-top{padding:2px 0!important} .header-logo{width:190px!important} .contact-link{width:34px!important;height:34px!important;border-width:1.5px!important} .header-contacts-top{margin-bottom:6px!important} .callback-btn{padding:7px 14px!important;width:auto!important;border-width:1.5px!important;font-size:14px!important} .header-contacts-bottom{margin-bottom:0!important} .menu-contacts-li{margin-bottom:2px!important} .header-navigation{padding:2px 0!important} .header-menu-link{font-size:15px!important}}`;

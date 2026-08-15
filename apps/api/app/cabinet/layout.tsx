@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { HEADER_HTML, FOOTER_HTML } from "./SiteChrome";
+import { HEADER_HTML, FOOTER_HTML, COMPACT_CSS } from "./SiteChrome";
 
 /**
  * Кабинет получает ту же шапку и подвал, что и uletnayaparkovka.ru/sheremetevo:
@@ -57,7 +57,7 @@ export default function CabinetLayout({ children }: { children: ReactNode }) {
       {STYLES.map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}
-      <style dangerouslySetInnerHTML={{ __html: FIXUP_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: COMPACT_CSS + FIXUP_CSS }} />
 
       <div dangerouslySetInnerHTML={{ __html: HEADER_HTML }} />
       <div className="ulk-body">{children}</div>
