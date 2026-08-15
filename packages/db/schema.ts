@@ -45,6 +45,8 @@ export const users = pgTable(
     lastName: text("last_name"),
     email: text("email"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    // Яндекс ID: вход в один тап, без ввода кода. Хранится id пользователя Яндекса.
+    yandexId: text("yandex_id"),
     loyaltyTier: loyaltyTierEnum("loyalty_tier").default("bronze").notNull(),
     loyaltyPoints: integer("loyalty_points").default(0).notNull(),
     referralCode: text("referral_code"),
@@ -56,6 +58,7 @@ export const users = pgTable(
   (t) => ({
     phoneIdx: uniqueIndex("users_phone_idx").on(t.phone),
     emailIdx: uniqueIndex("users_email_idx").on(t.email),
+    yandexIdx: uniqueIndex("users_yandex_idx").on(t.yandexId),
     amocrmIdx: uniqueIndex("users_amocrm_idx").on(t.amocrmContactId),
     referralIdx: uniqueIndex("users_referral_idx").on(t.referralCode),
   })

@@ -1,9 +1,25 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from "react-native";
 import { router } from "expo-router";
-import { requestCode, verifyCode, setTokens } from "@/lib/api";
+import Constants from "expo-constants";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import { requestCode, verifyCode, loginWithYandex, setTokens } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
+
+// Закрывает окно OAuth и возвращает результат в приложение.
+WebBrowser.maybeCompleteAuthSession();
+
+const YANDEX_CLIENT_ID =
+  (Constants.expoConfig?.extra as { yandexClientId?: string })?.yandexClientId ?? "";
+
+// Эндпоинты Яндекс ID. Обмен кода на токен делает наш сервер —
+// client_secret в приложение не попадает.
+const YANDEX_DISCOVERY = {
+  authorizationEndpoint: "https://oauth.yandex.ru/authorize",
+  tokenEndpoint: "https://oauth.yandex.ru/token",
+};
 
 const PRIVACY_URL = "https://uletnayaparkovka.ru/politika-konfidencialnosti";
 const OFFER_URL = "https://uletnayaparkovka.ru/politika-konfidencialnosti#oferta";
@@ -24,6 +40,46 @@ export default function Login() {
     analytics.screenView("login");
     analytics.authStarted();
   }, []);
+
+  /* --- Вход через Яндекс ID (code + PKCE) --- */
+  const yandexOn = Boolean(YANDEX_CLIENT_ID);
+  const redirectUri = AuthSession.makeRedirectUri({ scheme: "uletnaya", path: "auth/yandex" });
+  const [yaRequest, yaResponse, yaPrompt] = AuthSession.useAuthRequest(
+    {
+      clientId: YANDEX_CLIENT_ID,
+      redirectUri,
+      responseType: AuthSession.ResponseType.Code,
+      scopes: ["login:email", "login:info"],
+      usePKCE: true,
+    },
+    YANDEX_DISCOVERY
+  );
+
+  useEffect(() => {
+    if (yaResponse?.type !== "success" || !yaResponse.params.code) return;
+    let cancelled = false;
+    (async () => {
+      setErr(null);
+      setBusy(true);
+      try {
+        const r = await loginWithYandex({
+          code: yaResponse.params.code,
+          codeVerifier: yaRequest?.codeVerifier,
+          redirectUri,
+        });
+        if (cancelled) return;
+        await setTokens({ accessToken: r.accessToken, refreshToken: r.refreshToken });
+        router.replace("/(tabs)");
+      } catch (e) {
+        if (cancelled) return;
+        console.error("[login] yandex error", e);
+        setErr("Не удалось войти через Яндекс. Попробуйте вход по почте.");
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [yaResponse, yaRequest, redirectUri]);
 
   /** Что отправляем на сервер — почту или телефон. */
   function target() {
@@ -114,6 +170,19 @@ export default function Login() {
 
         {step === "contact" ? (
           <>
+            {yandexOn && (
+              <>
+                <TouchableOpacity
+                  style={[s.yaBtn, (busy || !yaRequest) && s.btnDisabled]}
+                  onPress={() => yaPrompt()}
+                  disabled={busy || !yaRequest}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.yaBtnTxt}>Войти через Яндекс</Text>
+                </TouchableOpacity>
+                <Text style={s.orTxt}>или по коду</Text>
+              </>
+            )}
             <View style={s.tabs}>
               <TouchableOpacity
                 style={[s.tab, mode === "email" && s.tabActive]}
@@ -241,6 +310,22 @@ const s = StyleSheet.create({
   eyebrow: { color: colors.primary, fontSize: 11, letterSpacing: 3, fontWeight: "600", marginBottom: spacing.md },
   title: { color: colors.textPrimary, fontSize: 28, fontWeight: "300", fontFamily: fonts.heading, marginBottom: spacing.sm, lineHeight: 34 },
   lede: { color: colors.textSecondary, fontSize: 14, marginBottom: spacing.xxl, lineHeight: 22 },
+
+  yaBtn: {
+    backgroundColor: "#fc3f1d",
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    alignItems: "center",
+    minHeight: 52,
+    justifyContent: "center",
+  },
+  yaBtnTxt: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  orTxt: {
+    textAlign: "center",
+    color: colors.textMuted,
+    fontSize: 12,
+    marginVertical: spacing.md,
+  },
 
   tabs: {
     flexDirection: "row",

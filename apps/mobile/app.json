@@ -67,6 +67,8 @@
     },
     "extra": {
       "apiUrl": "https://api.uletnayaparkovka.ru",
+      "//yandexClientId": "ID приложения из oauth.yandex.ru. Публичный (client_secret живёт только на сервере). Пусто — кнопка «Войти через Яндекс» скрыта.",
+      "yandexClientId": "",
       "router": {
         "origin": false
       },

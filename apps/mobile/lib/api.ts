@@ -93,6 +93,15 @@ export const requestCode = (target: { email?: string; phone?: string }) =>
     { method: "POST", body: JSON.stringify(target), auth: false }
   );
 
+/** Вход через Яндекс ID: отдаём серверу authorization code, обмен делает он. */
+export const loginWithYandex = (body: { code: string; codeVerifier?: string; redirectUri?: string }) =>
+  call<AuthTokens & {
+    user: UserProfile;
+    isNewUser: boolean;
+    needsPhone: boolean;
+    linkedBookings: number;
+  }>("/api/auth/yandex", { method: "POST", body: JSON.stringify(body), auth: false });
+
 export const verifyCode = (body: { email?: string; phone?: string; code: string }) =>
   call<AuthTokens & {
     user: UserProfile;

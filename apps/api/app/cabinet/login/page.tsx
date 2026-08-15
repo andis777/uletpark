@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getClientFromCookie } from "@/lib/cabinet-auth";
 import { LoginForm } from "./LoginForm";
+import { isYandexConfigured } from "@/lib/yandex";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,9 @@ export default async function CabinetLoginPage() {
   // Уже вошёл — незачем показывать форму.
   if (await getClientFromCookie()) redirect("/cabinet");
 
+  // Кнопку Яндекса показываем, только если OAuth настроен в окружении.
+  const yandexOn = isYandexConfigured();
+
   return (
     <div style={wrap}>
       <div style={card}>
@@ -24,6 +28,12 @@ export default async function CabinetLoginPage() {
         <p style={lede}>
           Ваши брони, история и баллы. Вход по коду на почту — пароль не нужен.
         </p>
+        {yandexOn && (
+          <>
+            <a href="/api/auth/yandex/start" style={yaBtn}>Войти через Яндекс</a>
+            <div style={divider}><span style={dividerTxt}>или по коду на почту</span></div>
+          </>
+        )}
         <LoginForm />
         <p style={legal}>
           Нажимая «Получить код», вы соглашаетесь с{" "}
@@ -61,3 +71,6 @@ const title: React.CSSProperties = { fontSize: 22, fontWeight: 700, color: "#143
 const lede: React.CSSProperties = { fontSize: 14, color: "#5c6b76", margin: "0 0 20px", lineHeight: 1.5 };
 const legal: React.CSSProperties = { fontSize: 11.5, color: "#8a97a1", marginTop: 18, lineHeight: 1.5 };
 const link: React.CSSProperties = { color: "#1a8f86" };
+const yaBtn: React.CSSProperties = { display: "block", textAlign: "center", background: "#fc3f1d", color: "#fff", padding: "13px 16px", borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: "none" };
+const divider: React.CSSProperties = { textAlign: "center", borderTop: "1px solid #e8eef0", margin: "20px 0 16px" };
+const dividerTxt: React.CSSProperties = { position: "relative", top: -10, background: "#fff", padding: "0 12px", fontSize: 12, color: "#8a97a1" };
