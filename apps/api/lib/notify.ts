@@ -366,3 +366,82 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
+
+/* =========================================================================
+ * Заявки из кабинета: допуслуга и партнёрство.
+ *
+ * Обе шлём владельцу на SMTP_TO и, если настроен, в Telegram. Заявка уже лежит
+ * в базе — эти функции никогда не бросают, чтобы падение почты её не потеряло.
+ * ======================================================================= */
+
+async function notifyOwner(subject: string, lines: string[]): Promise<{ ok: boolean; error?: string }> {
+  const text = lines.join("\n");
+
+  if (TG_BOT && TG_CHAT) {
+    fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: TG_CHAT,
+        text: `<b>${escapeHtml(subject)}</b>\n\n${escapeHtml(text)}`,
+        parse_mode: "HTML",
+      }),
+    }).catch((e) => console.warn("[notify] owner telegram failed:", (e as Error).message));
+  }
+
+  const t = getTransporter();
+  if (!t) {
+    console.log("[notify] owner email skip — SMTP not configured:", subject);
+    return { ok: false, error: "NO_SMTP" };
+  }
+  try {
+    await t.sendMail({ from: SMTP_FROM, to: SMTP_TO, subject, text });
+    console.log("[notify] owner email ✓", subject);
+    return { ok: true };
+  } catch (e) {
+    console.warn("[notify] owner email failed:", (e as Error).message);
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+export async function notifyServiceRequest(r: {
+  service: string;
+  userName: string;
+  email?: string;
+  phone?: string;
+  comment?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  return notifyOwner(`Заявка на услугу: ${r.service}`, [
+    `Услуга: ${r.service}`,
+    `Клиент: ${r.userName}`,
+    `Телефон: ${r.phone ?? "—"}`,
+    `Почта: ${r.email ?? "—"}`,
+    r.comment ? `Комментарий: ${r.comment}` : "",
+    "",
+    "Заявка из личного кабинета. Цену подтверждает менеджер.",
+  ].filter(Boolean));
+}
+
+export async function notifyPartnerApplication(p: {
+  contactName: string;
+  company?: string;
+  phone: string;
+  email?: string;
+  city: string;
+  airport: string;
+  spaces?: number;
+  hasTransfer?: boolean;
+  message?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  return notifyOwner(`Партнёр: ${p.city}, ${p.airport}`, [
+    `Компания: ${p.company ?? "—"}`,
+    `Контакт: ${p.contactName}`,
+    `Телефон: ${p.phone}`,
+    `Почта: ${p.email ?? "—"}`,
+    `Город: ${p.city}`,
+    `Аэропорт: ${p.airport}`,
+    `Мест: ${p.spaces ?? "—"}`,
+    `Трансфер: ${p.hasTransfer === undefined ? "—" : p.hasTransfer ? "есть" : "нет"}`,
+    p.message ? `Сообщение: ${p.message}` : "",
+  ].filter(Boolean));
+}

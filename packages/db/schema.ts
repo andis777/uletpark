@@ -147,6 +147,100 @@ export const loyaltyTransactions = pgTable(
  * loyalty_rules — управляются из админки
  * ======================================================================= */
 
+/* =========================================================================
+ * services — каталог допуслуг на парковке
+ *
+ * price_kopecks НЕ обязателен: пока владелец не подтвердил цену, показываем
+ * «цену уточнит менеджер». Так каталог живёт на сайте, ничего не обещая
+ * клиенту заранее. is_active выключает услугу, не удаляя её.
+ * ======================================================================= */
+
+export const serviceCategoryEnum = pgEnum("service_category", [
+  "care",     // мойка, уборка, детейлинг
+  "tech",     // шиномонтаж, масло, АКБ, подкачка
+  "winter",   // прогрев, очистка от снега
+  "comfort",  // детское кресло, встреча, багаж
+  "partner",  // страховка, аренда авто, отель — через партнёров
+]);
+
+export const services = pgTable(
+  "services",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    category: serviceCategoryEnum("category").notNull(),
+    priceKopecks: integer("price_kopecks"),                  // null → «цена по запросу»
+    unit: text("unit"),                                      // «за колесо», «за сутки», «разово»
+    isActive: boolean("is_active").default(false).notNull(), // включает владелец
+    sortOrder: integer("sort_order").default(100).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    slugIdx: uniqueIndex("services_slug_idx").on(t.slug),
+    activeIdx: index("services_active_idx").on(t.isActive, t.sortOrder),
+  })
+);
+
+/* =========================================================================
+ * service_requests — заявка клиента на услугу
+ *
+ * Не заказ и не оплата: менеджер подтверждает и называет цену, как и с бронью.
+ * ======================================================================= */
+
+export const serviceRequestStatusEnum = pgEnum("service_request_status", [
+  "new",
+  "confirmed",
+  "done",
+  "declined",
+]);
+
+export const serviceRequests = pgTable(
+  "service_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id).notNull(),
+    bookingId: uuid("booking_id").references(() => bookings.id),
+    serviceId: uuid("service_id").references(() => services.id).notNull(),
+    status: serviceRequestStatusEnum("status").default("new").notNull(),
+    comment: text("comment"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index("service_req_user_idx").on(t.userId, t.createdAt),
+    statusIdx: index("service_req_status_idx").on(t.status, t.createdAt),
+  })
+);
+
+/* =========================================================================
+ * partner_applications — заявки парковок из других аэропортов
+ *
+ * ВАЖНО: Шереметьево исключено намеренно — это наш аэропорт, подключать там
+ * чужие площадки значит кормить собственных конкурентов.
+ * ======================================================================= */
+
+export const partnerApplications = pgTable(
+  "partner_applications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    company: text("company"),
+    contactName: text("contact_name").notNull(),
+    phone: text("phone").notNull(),
+    email: text("email"),
+    city: text("city").notNull(),
+    airport: text("airport").notNull(),                      // свободный текст: аэропортов много
+    spaces: integer("spaces"),                               // мест на площадке
+    hasTransfer: boolean("has_transfer"),
+    message: text("message"),
+    status: text("status").default("new").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    statusIdx: index("partner_app_status_idx").on(t.status, t.createdAt),
+  })
+);
+
 export const loyaltyRules = pgTable("loyalty_rules", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -269,3 +363,6 @@ export type Booking = typeof bookings.$inferSelect;
 export type NewBooking = typeof bookings.$inferInsert;
 export type LoyaltyTx = typeof loyaltyTransactions.$inferSelect;
 export type Event = typeof events.$inferSelect;
+export type Service = typeof services.$inferSelect;
+export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type PartnerApplication = typeof partnerApplications.$inferSelect;

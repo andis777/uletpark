@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
-import { desc, eq } from "drizzle-orm";
-import { db, bookings, loyaltyTransactions } from "@/lib/db";
+import { asc, desc, eq } from "drizzle-orm";
+import { db, bookings, loyaltyTransactions, services } from "@/lib/db";
 import { getCurrentClient } from "@/lib/cabinet-auth";
 import { LogoutButton } from "./LogoutButton";
+import { ServiceCard } from "./ServiceCard";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,14 @@ export default async function CabinetPage() {
     .where(eq(loyaltyTransactions.userId, user.id))
     .orderBy(desc(loyaltyTransactions.createdAt))
     .limit(10);
+
+  // Только включённые владельцем услуги. Пока ни одна не включена — раздела нет,
+  // и клиент не увидит того, чего мы не оказываем.
+  const svc = await db
+    .select()
+    .from(services)
+    .where(eq(services.isActive, true))
+    .orderBy(asc(services.sortOrder));
 
   const now = new Date();
   const active = rows.filter((b) => b.dateTo >= now && b.status !== "cancelled");
@@ -152,6 +161,33 @@ export default async function CabinetPage() {
               </div>
             ))
           )}
+        </section>
+
+        {svc.length > 0 && (
+          <section style={card}>
+            <h2 style={cardTitle}>Услуги на парковке</h2>
+            <p style={{ ...empty, marginBottom: 4 }}>
+              Машина всё равно стоит у нас — сделаем, пока вы в отъезде.
+            </p>
+            {svc.map((s) => (
+              <ServiceCard
+                key={s.id}
+                slug={s.slug}
+                title={s.title}
+                description={s.description}
+                price={s.priceKopecks == null ? null : money(s.priceKopecks)}
+                unit={s.unit}
+              />
+            ))}
+          </section>
+        )}
+
+        <section style={card}>
+          <h2 style={cardTitle}>Своя парковка у аэропорта?</h2>
+          <p style={empty}>
+            Подключаем площадки в других городах и отдаём комиссию с каждой брони,
+            которую приведём. <a href="/partners" style={link}>Условия партнёрства →</a>
+          </p>
         </section>
 
         {txs.length > 0 && (
