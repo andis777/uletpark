@@ -9,6 +9,7 @@
 
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { db, bookings, users } from "@uletnaya/db";
+import { awardForBooking, awardReferrerOnFirstCompleted } from "./loyalty";
 import {
   iterateLeads,
   findPipelineId,
@@ -205,6 +206,12 @@ export async function syncFromPipeline(opts: {
         }).where(eq(bookings.amocrmLeadId, lead.id));
         result.updated++;
       }
+
+      // Начисление баллов. Раньше вызывалось ТОЛЬКО из вебхука amoCRM, а брони
+      // приходят и этим путём — поэтому за 57 завершённых броней не начислено
+      // ничего. awardForBooking идемпотентна (проверяет прошлую транзакцию по
+      // броне), так что повторные прогоны безопасны.
+      if (status === "completed") await awardCompleted(lead.id);
     } catch (e) {
       result.errors.push(`Lead ${lead.id}: ${(e as Error).message}`);
       result.skipped++;
@@ -212,6 +219,22 @@ export async function syncFromPipeline(opts: {
   }
 
   return result;
+}
+
+/**
+ * Начислить баллы по завершённой броне сделки amoCRM.
+ * Ошибка начисления не должна ломать синхронизацию — бронь уже сохранена.
+ */
+async function awardCompleted(amocrmLeadId: number): Promise<void> {
+  try {
+    const [b] = await db.select({ id: bookings.id, userId: bookings.userId })
+      .from(bookings).where(eq(bookings.amocrmLeadId, amocrmLeadId)).limit(1);
+    if (!b?.userId) return;
+    const r = await awardForBooking(b.id);
+    if (r) await awardReferrerOnFirstCompleted(b.userId);
+  } catch (e) {
+    console.warn(`[loyalty] начисление по лиду ${amocrmLeadId} не удалось:`, (e as Error).message);
+  }
 }
 
 /**
@@ -253,6 +276,10 @@ export async function linkBookingsToUserByPhone(userId: string, phone: string): 
           .where(eq(bookings.amocrmLeadId, lead.id));
         linked++;
       }
+
+      // Человек зарегистрировался ПОСЛЕ поездки — его прошлые завершённые брони
+      // только сейчас получили userId, а значит только сейчас могут дать баллы.
+      if (status === "completed") await awardCompleted(lead.id);
     } catch (e) {
       console.error(`linkBookingsToUserByPhone lead=${lead.id}:`, e);
     }
@@ -286,6 +313,12 @@ export async function linkOrphanBookings(): Promise<{ scanned: number; linked: n
           await db.update(users).set({ amocrmContactId: contactId, updatedAt: sql`NOW()` }).where(eq(users.id, u.id));
         }
         linked++;
+
+        // Бронь-сирота могла быть уже завершена — начисляем, раз хозяин найден.
+        if (b.status === "completed") {
+          const r = await awardForBooking(b.id);
+          if (r) await awardReferrerOnFirstCompleted(u.id);
+        }
       }
     } catch (e) {
       console.error(`linkOrphanBookings booking=${b.id}:`, e);
