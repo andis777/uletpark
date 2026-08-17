@@ -18,6 +18,13 @@ const SITE = "https://uletnayaparkovka.ru";
 // а карты по «парковка Шереметьево» стоят выше рекламы.
 const YANDEX_REVIEWS = "https://yandex.ru/maps/org/ulyotnaya_parkovka/64527453581/reviews/";
 
+/**
+ * Программа лояльности пока не согласована — клиенту её не показываем.
+ * Начисление в базе продолжает работать, история сохраняется: когда условия
+ * утвердят, достаточно вернуть true, ничего не пересчитывая.
+ */
+const LOYALTY_VISIBLE = false;
+
 const STATUS_RU: Record<string, string> = {
   new: "Новая",
   confirmed: "Подтверждена",
@@ -94,14 +101,18 @@ export default async function CabinetPage() {
         )}
 
         <section style={cards}>
-          <div style={kpi}>
-            <div style={kpiN}>{user.loyaltyPoints.toLocaleString("ru-RU")}</div>
-            <div style={kpiL}>баллов на счету</div>
-          </div>
-          <div style={kpi}>
-            <div style={kpiN}>{user.loyaltyTier.toUpperCase()}</div>
-            <div style={kpiL}>уровень</div>
-          </div>
+          {LOYALTY_VISIBLE && (
+            <>
+              <div style={kpi}>
+                <div style={kpiN}>{user.loyaltyPoints.toLocaleString("ru-RU")}</div>
+                <div style={kpiL}>баллов на счету</div>
+              </div>
+              <div style={kpi}>
+                <div style={kpiN}>{user.loyaltyTier.toUpperCase()}</div>
+                <div style={kpiL}>уровень</div>
+              </div>
+            </>
+          )}
           <div style={kpi}>
             <div style={kpiN}>{rows.length}</div>
             <div style={kpiL}>всего броней</div>
@@ -190,7 +201,7 @@ export default async function CabinetPage() {
           </p>
         </section>
 
-        {txs.length > 0 && (
+        {LOYALTY_VISIBLE && txs.length > 0 && (
           <section style={card}>
             <h2 style={cardTitle}>Баллы</h2>
             {txs.map((t) => (
@@ -207,7 +218,7 @@ export default async function CabinetPage() {
           </section>
         )}
 
-        {user.referralCode && (
+        {LOYALTY_VISIBLE && user.referralCode && (
           <section style={card}>
             <h2 style={cardTitle}>Приведите друга</h2>
             <p style={empty}>Ваш код: <b style={{ color: "#0f3b5d", letterSpacing: 1 }}>{user.referralCode}</b></p>

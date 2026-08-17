@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { LOYALTY_VISIBLE } from "@/lib/flags";
 import { ScrollView, Text, View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -49,6 +50,7 @@ export default function Dashboard() {
         </TouchableOpacity>
       </View>
 
+      {LOYALTY_VISIBLE && (
       <View style={s.heroWrap}>
         <View style={s.loyCard}>
           <View style={s.loyTopRow}>
@@ -64,6 +66,7 @@ export default function Dashboard() {
           <Text style={s.loyHint}>1 балл = 1 ₽ при следующей брони</Text>
         </View>
       </View>
+      )}
 
       <View style={s.section}>
         <SectionHeader title="Что бронируем?" />

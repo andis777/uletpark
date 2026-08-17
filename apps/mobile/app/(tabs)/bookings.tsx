@@ -4,6 +4,7 @@ import { ScrollView, Text, View, StyleSheet, ActivityIndicator, TouchableOpacity
 import { router } from "expo-router";
 import { listBookings, syncMyBookings } from "@/lib/api";
 import { openYandexReviews, reviewLabel } from "@/lib/reviews";
+import { LOYALTY_VISIBLE } from "@/lib/flags";
 import { colors, typography, radii, spacing } from "@/lib/theme";
 import { Card } from "@/components/Card";
 import { Pill } from "@/components/Pill";
@@ -137,10 +138,10 @@ export default function Bookings() {
 
               <View style={s.cardFoot}>
                 <Text style={s.price}>{b.priceRub.toLocaleString("ru")} ₽</Text>
-                {isUpcoming && b.loyaltyPointsEarned > 0 && (
+                {LOYALTY_VISIBLE && isUpcoming && b.loyaltyPointsEarned > 0 && (
                   <Text style={s.bonus}>+{b.loyaltyPointsEarned} баллов</Text>
                 )}
-                {!isUpcoming && b.loyaltyPointsEarned > 0 && (
+                {LOYALTY_VISIBLE && !isUpcoming && b.loyaltyPointsEarned > 0 && (
                   <Text style={s.bonusDone}>+{b.loyaltyPointsEarned} начислено</Text>
                 )}
               </View>
