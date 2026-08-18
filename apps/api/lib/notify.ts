@@ -445,3 +445,28 @@ export async function notifyPartnerApplication(p: {
     p.message ? `Сообщение: ${p.message}` : "",
   ].filter(Boolean));
 }
+
+export async function notifyBookingExtend(r: {
+  userName: string;
+  phone?: string;
+  email?: string;
+  carNumber?: string;
+  from: Date;
+  wasTo: Date;
+  newTo: Date;
+  comment?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const d = (x: Date) => x.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return notifyOwner(`Продление брони: ${r.userName}`, [
+    `Клиент: ${r.userName}`,
+    `Телефон: ${r.phone ?? "—"}`,
+    `Почта: ${r.email ?? "—"}`,
+    `Авто: ${r.carNumber ?? "—"}`,
+    "",
+    `Бронь: ${d(r.from)} — ${d(r.wasTo)}`,
+    `Просит продлить до: ${d(r.newTo)}`,
+    r.comment ? `Комментарий: ${r.comment}` : "",
+    "",
+    "Запрос из личного кабинета. Цену и возможность подтверждает менеджер.",
+  ].filter(Boolean));
+}

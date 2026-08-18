@@ -241,6 +241,35 @@ export const partnerApplications = pgTable(
   })
 );
 
+
+/* =========================================================================
+ * booking_change_requests — запросы клиента на изменение брони
+ *
+ * Продление оформляется запросом, а не прямой правкой: цена зависит от срока,
+ * а подтверждает её менеджер. Номер машины клиент правит сам — это его данные.
+ * ======================================================================= */
+
+export const bookingChangeKindEnum = pgEnum("booking_change_kind", ["extend"]);
+export const bookingChangeStatusEnum = pgEnum("booking_change_status", ["new", "approved", "declined"]);
+
+export const bookingChangeRequests = pgTable(
+  "booking_change_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bookingId: uuid("booking_id").references(() => bookings.id).notNull(),
+    userId: uuid("user_id").references(() => users.id).notNull(),
+    kind: bookingChangeKindEnum("kind").notNull(),
+    newDateTo: timestamp("new_date_to", { withTimezone: true }),
+    comment: text("comment"),
+    status: bookingChangeStatusEnum("status").default("new").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    bookingIdx: index("bcr_booking_idx").on(t.bookingId, t.createdAt),
+    statusIdx: index("bcr_status_idx").on(t.status, t.createdAt),
+  })
+);
+
 export const loyaltyRules = pgTable("loyalty_rules", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -366,3 +395,4 @@ export type Event = typeof events.$inferSelect;
 export type Service = typeof services.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type PartnerApplication = typeof partnerApplications.$inferSelect;
+export type BookingChangeRequest = typeof bookingChangeRequests.$inferSelect;

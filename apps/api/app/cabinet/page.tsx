@@ -3,6 +3,7 @@ import { asc, desc, eq } from "drizzle-orm";
 import { db, bookings, loyaltyTransactions, services } from "@/lib/db";
 import { getCurrentClient } from "@/lib/cabinet-auth";
 import { LogoutButton } from "./LogoutButton";
+import { BookingActions } from "./BookingActions";
 import { ServiceCard } from "./ServiceCard";
 
 export const dynamic = "force-dynamic";
@@ -143,6 +144,12 @@ export default async function CabinetPage() {
                   <a href={YANDEX_REVIEWS} target="_blank" rel="noopener" style={review}>
                     {hasStayed(b.status) ? "★ Оценить на Яндексе" : "★ Отзывы на Яндексе"}
                   </a>
+                  <BookingActions
+                    bookingId={b.id}
+                    dateToISO={b.dateTo.toISOString().slice(0, 10)}
+                    carNumber={b.carNumber}
+                    carModel={b.carModel}
+                  />
                 </div>
               </div>
             ))
